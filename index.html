@@ -869,10 +869,11 @@
     };
 
     let currentUser = null;
-    let links = [];
-    let sources = [];
-    let lf = "all";
-    let sf = "all";
+let links = [];
+let sources = [];
+let lf = "all";
+let sf = "all";
+let isInitializing = false;
 
     function showError(text) {
       const el = document.getElementById("error-banner");
