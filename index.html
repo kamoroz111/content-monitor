@@ -258,13 +258,13 @@ function renderLinks(){
       +(l.idea?"<div class='item-idea'>💡 "+e(l.idea)+"</div>":"")
       +"</div>"
       +"<div class='item-actions'>"
-      +"<select class='status-sel' onchange='setStatus(""+l.id+"",this.value)'>"
-      +"<option value='new' "+(l.status==="new"?"selected":"")+"}>🆕 Новое</option>"
-      +"<option value='wip' "+(l.status==="wip"?"selected":"")+"}>⚙️ В работе</option>"
-      +"<option value='done'"+(l.status==="done"?"selected":"")+"}>✅ Готово</option>"
-      +"<option value='skip'"+(l.status==="skip"?"selected":"")+"}>⏸ Отложено</option>"
+      +"<select class='status-sel' onchange='setStatus(\""+l.id+"\",this.value)'>"
+      +"<option value='new' "+(l.status==="new"?"selected":"")+">🆕 Новое</option>"
+      +"<option value='wip' "+(l.status==="wip"?"selected":"")+">⚙️ В работе</option>"
+      +"<option value='done' "+(l.status==="done"?"selected":"")+">✅ Готово</option>"
+      +"<option value='skip' "+(l.status==="skip"?"selected":"")+">⏸ Отложено</option>"
       +"</select>"
-      +"<button class='btn-del' onclick='delLink(""+l.id+"")'>✕ удалить</button>"
+      +"<button class='btn-del' onclick='delLink(\""+l.id+"\")'>✕ удалить</button>"
       +"</div></div>";
   }).join("");
 }
@@ -284,7 +284,7 @@ function renderSources(){
       +"<div class='src-desc'>"+e(s.description||"")+"</div>"
       +"<div class='src-foot'>"
       +"<span class='cat-badge cat-"+s.cat+"' style='font-size:10px'>"+catLbl+"</span>"
-      +"<button class='btn-src-del' onclick='delSource(""+s.id+"")'>✕</button>"
+      +"<button class='btn-src-del' onclick='delSource(\""+s.id+"\")'>✕</button>"
       +"</div></div>";
   }).join("");
 }
