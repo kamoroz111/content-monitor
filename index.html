@@ -934,54 +934,61 @@ let isInitializing = false;
       document.getElementById("stats-content").innerHTML = "<div class='empty'>Ошибка загрузки статистики: " + e(msg) + "</div>";
     }
 
-    async function boot() {
-      setAllowedEmailLabel();
+    function boot() {
+  setAllowedEmailLabel();
+  setUserUi();
+
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    console.log("AUTH EVENT:", event);
+
+    if (event === "SIGNED_OUT") {
+      currentUser = null;
       setUserUi();
+      clearApp();
+      showLogin();
+      sync("err", "нужен вход");
+      return;
+    }
 
-      supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        console.log("AUTH EVENT:", event);
-
-        if (event === "SIGNED_OUT") {
-          currentUser = null;
-          setUserUi();
-          clearApp();
-          showLogin();
-          sync("err", "нужен вход");
-          return;
-        }
-
-        if (session?.user) {
-          currentUser = session.user;
-          setUserUi();
-          hideLogin();
-          await initApp();
-        }
-      });
-
-      sync("loading", "проверка сессии...");
-      const { data, error } = await supabaseClient.auth.getSession();
-
-      if (error) {
-        console.error("SESSION ERROR:", error);
-        showError("Ошибка сессии: " + (error.message || "unknown"));
-        sync("err", "ошибка сессии");
-        showLogin();
-        return;
-      }
-
-      if (!data.session?.user) {
-        currentUser = null;
-        setUserUi();
-        showLogin();
-        sync("err", "нужен вход");
-        return;
-      }
-
-      currentUser = data.session.user;
+    if (session?.user) {
+      currentUser = session.user;
       setUserUi();
       hideLogin();
-      await initApp();
+
+      setTimeout(() => {
+        initApp();
+      }, 0);
     }
+  });
+
+  sync("loading", "проверка сессии...");
+
+  supabaseClient.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error("SESSION ERROR:", error);
+      showError("Ошибка сессии: " + (error.message || "unknown"));
+      sync("err", "ошибка сессии");
+      showLogin();
+      return;
+    }
+
+    if (!data.session?.user) {
+      currentUser = null;
+      setUserUi();
+      showLogin();
+      sync("err", "нужен вход");
+      return;
+    }
+
+    currentUser = data.session.user;
+    setUserUi();
+    hideLogin();
+
+    setTimeout(() => {
+      initApp();
+    }, 0);
+  });
+}
 
     async function login() {
       const email = v("login-email").toLowerCase();
@@ -1044,26 +1051,25 @@ let isInitializing = false;
     }
 
     async function initApp() {
-      clearError();
-      sync("loading", "загрузка данных...");
+  if (isInitializing) return;
+  if (!currentUser) return;
 
-      try {
-        await loadSources();
-      } catch (error) {
-        setLoadError("loadSources", error);
-        return;
-      }
+  isInitializing = true;
+  clearError();
+  sync("loading", "загрузка данных...");
 
-      try {
-        await loadLinks();
-      } catch (error) {
-        setLoadError("loadLinks", error);
-        return;
-      }
-
-      renderStats();
-      sync("ok", "Supabase ✓");
-    }
+  try {
+    await loadSources();
+    await loadLinks();
+    renderStats();
+    sync("ok", "Supabase ✓");
+  } catch (error) {
+    console.error("INIT ERROR:", error);
+    setLoadError("initApp", error);
+  } finally {
+    isInitializing = false;
+  }
+}
 
     async function loadLinks() {
       const { data, error } = await db
