@@ -27,6 +27,8 @@ header{background:var(--ink);padding:12px 20px;display:flex;align-items:center;j
 .f-cat{width:155px}.f-prio{width:125px}.f-fmt{width:145px}
 .btn-add{background:var(--ink);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
 .btn-add:hover{background:var(--accent)}.btn-add:disabled{opacity:.5;cursor:wait}
+.btn-ai{background:#633806;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s;margin-left:8px}
+.btn-ai:hover{background:#7a4a0a}.btn-ai:disabled{opacity:.5;cursor:wait}
 .filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
 .fil-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:none;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
 .fil-btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}.fil-btn:hover{color:var(--ink)}
@@ -122,6 +124,7 @@ header{background:var(--ink);padding:12px 20px;display:flex;align-items:center;j
           <option value="digest">Дайджест</option>
         </select>
         <button class="btn-add" id="btn-add-link" onclick="addLink()">+ Добавить</button>
+        <button class="btn-ai" id="btn-ai" onclick="analyzeContent()">🤖 AI-анализ</button>
       </div>
     </div>
     <div class="filters">
@@ -195,6 +198,52 @@ const DEF_SRC=[
   {id:"ds8",name:"@karpathy",url:"https://x.com/karpathy",cat:"ai",type:"twitter",description:"Лучшие объяснения как работает AI."},
 ];
 let links=[],sources=[],lf="all",sf="all";
+
+// ========== AI АНАЛИЗ ==========
+async function analyzeContent() {
+  const url = document.getElementById('l-url').value;
+  const title = document.getElementById('l-title').value;
+  
+  if (!url && !title) {
+    toast('Сначала введите URL или название');
+    return;
+  }
+  
+  const btn = document.getElementById('btn-ai');
+  btn.disabled = true;
+  btn.textContent = '🤖 Анализ...';
+  
+  try {
+    // 1. Анализируем категорию (Gemini)
+    const { data: analysis, error: err1 } = await supabase.functions.invoke('ai-analyze', {
+      body: { url, title, type: 'analyze' }
+    });
+    
+    if (err1) throw err1;
+    
+    // 2. Генерируем идеи (Groq)
+    const { data: creative, error: err2 } = await supabase.functions.invoke('ai-analyze', {
+      body: { url, title, type: 'ideas' }
+    });
+    
+    if (err2) throw err2;
+    
+    // Заполняем форму
+    document.getElementById('l-cat').value = analysis.category;
+    document.getElementById('l-idea').value = creative.ideas;
+    
+    toast(`✅ AI готов: ${analysis.category} | 3 идеи`);
+    
+  } catch (e) {
+    toast('❌ Ошибка AI: ' + e.message, 'err');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 AI-анализ';
+  }
+}
+
+// ========== ОСНОВНЫЕ ФУНКЦИИ ==========
 async function init(){
   sync("loading","подключение...");
   try{
@@ -230,6 +279,8 @@ async function addSource(){
   await loadSources();toast("Источник добавлен ✓");
 }
 async function delSource(id){if(!confirm("Удалить?"))return;await db.from("sources").delete().eq("id",id);sources=sources.filter(x=>x.id!==id);renderSources();toast("Удалено");}
+
+// ========== РЕНДЕРИНГ ==========
 function renderLinks(){
   const q=(document.getElementById("search")?.value||"").toLowerCase();
   const items=links.filter(l=>{
