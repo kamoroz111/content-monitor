@@ -1121,7 +1121,7 @@ let isInitializing = false;
         const { data: sessionData } = await supabaseClient.auth.getSession();
         const accessToken = sessionData.session?.access_token;
 
-        const { data, error } = await supabaseClient.functions.invoke("ai-analyze", {
+        const { data, error } = await supabaseClient.functions.invoke("rapid-worker", {
           headers: accessToken
             ? { Authorization: "Bearer " + accessToken }
             : {},
