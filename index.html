@@ -614,6 +614,11 @@
       display:flex;
       gap:8px;
       flex-wrap:wrap;
+      margin-bottom:8px;
+    }
+
+    .login-row:last-child{
+      margin-bottom:0;
     }
 
     .login-input{
@@ -660,11 +665,14 @@
     <div class="login-card">
       <div class="login-title">Вход в контент-монитор</div>
       <div class="login-sub">
-        Вход по magic link. Разрешён только email:
+        Вход по email и паролю. Разрешён только email:
         <b id="allowed-email-label"></b>
       </div>
       <div class="login-row">
         <input class="login-input" id="login-email" type="email" placeholder="you@example.com" />
+      </div>
+      <div class="login-row">
+        <input class="login-input" id="login-password" type="password" placeholder="Пароль" />
         <button class="btn-add" id="btn-login" onclick="login()">Войти</button>
       </div>
     </div>
@@ -808,15 +816,13 @@
 
   <script>
     const SB_URL = "https://lrjcxtprwpgrdemwyptv.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxyamN4dHByd3BncmRlbXd5cHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzE3MTUsImV4cCI6MjA5MTkwNzcxNX0.gA67TpNrfrLxF48oSReVZt5oUSkc2-Jbl1K8CinKxsQ";
+    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxyamN4dHByd3BncmRlbXd5cHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzE3MTUsImV4cCI6MjA5MTkwNzcxNX0.gA67TpNrfrLxF48oSReVZt5oUSkc2-Jbl1K8CinKxsQ";
     const ALLOWED_EMAIL = "kamoroz175@gmail.com";
-    const REDIRECT_URL = window.location.origin + window.location.pathname;
 
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
       auth: {
         autoRefreshToken: true,
-        persistSession: true,
-        detectSessionInUrl: true
+        persistSession: true
       }
     });
 
@@ -872,6 +878,7 @@
       document.body.classList.add("auth-locked");
       document.getElementById("login-overlay").classList.remove("hidden");
       document.getElementById("login-email").value = currentUser?.email || ALLOWED_EMAIL || "";
+      document.getElementById("login-password").value = "";
     }
 
     function hideLogin() {
@@ -938,9 +945,15 @@
 
     async function login() {
       const email = v("login-email").toLowerCase();
+      const password = v("login-password");
 
       if (!email) {
         toast("Введите email", "err");
+        return;
+      }
+
+      if (!password) {
+        toast("Введите пароль", "err");
         return;
       }
 
@@ -951,14 +964,11 @@
 
       const btn = document.getElementById("btn-login");
       btn.disabled = true;
-      btn.textContent = "Отправка...";
+      btn.textContent = "Вход...";
 
-      const { error } = await supabaseClient.auth.signInWithOtp({
+      const { error } = await supabaseClient.auth.signInWithPassword({
         email,
-        options: {
-          emailRedirectTo: REDIRECT_URL,
-          shouldCreateUser: false
-        }
+        password
       });
 
       btn.disabled = false;
@@ -969,8 +979,7 @@
         return;
       }
 
-      toast("Ссылка для входа отправлена на почту");
-      sync("loading", "ожидание входа...");
+      toast("Вход выполнен");
     }
 
     async function logout() {
@@ -1222,7 +1231,6 @@
       }
 
       sources = sources.filter(x => x.id !== id);
-
       links = links.map(l => l.source_id === id ? { ...l, source_id: null } : l);
 
       renderSourceOptions();
@@ -1237,9 +1245,7 @@
       const current = select.value;
 
       select.innerHTML = "<option value=''>Источник...</option>" +
-        sources.map(s =>
-          "<option value='" + e(s.id) + "'>" + e(s.name) + "</option>"
-        ).join("");
+        sources.map(s => "<option value='" + e(s.id) + "'>" + e(s.name) + "</option>").join("");
 
       if (current && sources.some(s => s.id === current)) {
         select.value = current;
@@ -1258,7 +1264,6 @@
             .some(s => s.toLowerCase().includes(q));
 
         if (!matchesSearch) return false;
-
         if (lf === "all") return true;
         if (lf.startsWith("st:")) return l.status === lf.slice(3);
         if (lf.startsWith("prio:")) return l.prio === lf.slice(5);
@@ -1384,9 +1389,7 @@
           "<div class='stat-card'><div class='stat-n' style='color:var(--mkt)'>" + (bs.done || 0) + "</div><div class='stat-l'>Готово</div></div>" +
           "<div class='stat-card'><div class='stat-n'>" + sources.length + "</div><div class='stat-l'>Источников</div></div>" +
         "</div>" +
-
         "<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px'>" +
-
           "<div style='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px'>" +
             "<div style='font-size:13px;font-weight:600;margin-bottom:12px'>По тематике</div>" +
             "<div class='chart-row'>" +
@@ -1401,7 +1404,6 @@
                 ).join("") +
             "</div>" +
           "</div>" +
-
           "<div style='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px'>" +
             "<div style='font-size:13px;font-weight:600;margin-bottom:12px'>Топ форматов</div>" +
             "<div class='chart-row'>" +
@@ -1416,7 +1418,6 @@
                 : "<div style='font-size:12px;color:var(--muted)'>Добавьте ссылки с форматом</div>") +
             "</div>" +
           "</div>" +
-
         "</div>";
     }
 
