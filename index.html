@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Мониторинг контента — Кирилл Морозов</title>
+<title>Контент-монитор — Кирилл Морозов</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--ink:#0d0d0d;--bg:#fafaf7;--card:#fff;--border:#e0dcd5;--muted:#777;--accent:#1847c8;--r:8px;--mkt:#3b6d11;--mkt-bg:#eaf3de;--ai:#0c447c;--ai-bg:#e6f1fb;--both:#633806;--both-bg:#faeeda;--news:#534ab7;--news-bg:#eeedfe}
+:root{--ink:#0d0d0d;--bg:#fafaf7;--card:#fff;--border:#e0dcd5;--muted:#777;--accent:#1847c8;--r:8px;
+  --mkt:#3b6d11;--mkt-bg:#eaf3de;--ai:#0c447c;--ai-bg:#e6f1fb;
+  --both:#633806;--both-bg:#faeeda;--news:#534ab7;--news-bg:#eeedfe}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
 header{background:var(--ink);padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
@@ -16,60 +18,61 @@ header{background:var(--ink);padding:12px 20px;display:flex;align-items:center;j
 .sdot.err{background:#e24b4a}.sdot.loading{background:#ef9f27;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .tabs{display:flex;gap:2px;padding:12px 20px 0;border-bottom:1px solid var(--border);background:var(--card);overflow-x:auto}
-.tab{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap;transition:color .15s}
+.tab{padding:8px 16px;font-size:13px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
 .tab.active{color:var(--accent);border-bottom-color:var(--accent)}.tab:hover{color:var(--ink)}
 .main{padding:16px 20px;max-width:1200px}
 .add-form{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:14px}
 .form-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}.form-row:last-child{margin-bottom:0}
-.form-row input,.form-row select{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--ink);outline:none;transition:border-color .15s}
+.form-row input,.form-row select{font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--ink);outline:none}
 .form-row input:focus,.form-row select:focus{border-color:var(--accent)}
 .f-url{flex:2;min-width:200px}.f-title{flex:3;min-width:180px}.f-idea{flex:4;min-width:200px}
 .f-cat{width:155px}.f-prio{width:125px}.f-fmt{width:145px}
-.btn-add{background:var(--ink);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s}
+.btn-add{background:var(--ink);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
 .btn-add:hover{background:var(--accent)}.btn-add:disabled{opacity:.5;cursor:wait}
-.btn-ai{background:#633806;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .15s;margin-left:8px}
-.btn-ai:hover{background:#7a4a0a}.btn-ai:disabled{opacity:.5;cursor:wait}
+.btn-ai{background:#534ab7;color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-ai:hover{background:#3c3489}.btn-ai:disabled{opacity:.5;cursor:wait}
 .filters{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
-.fil-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:none;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap}
-.fil-btn.active{background:var(--ink);color:#fff;border-color:var(--ink)}.fil-btn:hover{color:var(--ink)}
-.search-box{padding:6px 10px;border:1px solid var(--border);border-radius:20px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--ink);outline:none;min-width:220px}
-.search-box:focus{border-color:var(--accent)}
+.fil{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:none;font-size:12px;font-weight:500;color:var(--muted);cursor:pointer;white-space:nowrap}
+.fil.on{background:var(--ink);color:#fff;border-color:var(--ink)}.fil:hover{color:var(--ink)}
+.sbox{padding:6px 10px;border:1px solid var(--border);border-radius:20px;font-size:13px;font-family:inherit;background:var(--bg);color:var(--ink);outline:none;min-width:220px}
+.sbox:focus{border-color:var(--accent)}
 .items{display:flex;flex-direction:column;gap:6px}
-.item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s}
-.item:hover{border-color:#c0bdb5}.item-body{flex:1;min-width:0}
-.item-top{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
-.cat-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
-.cat-marketing{background:var(--mkt-bg);color:var(--mkt)}.cat-ai{background:var(--ai-bg);color:var(--ai)}
-.cat-both{background:var(--both-bg);color:var(--both)}.cat-news{background:var(--news-bg);color:var(--news)}
-.cat-case{background:#f0ede7;color:#555}
-.fmt-badge{font-size:10px;padding:2px 8px;border-radius:20px;background:#f0ede7;color:#666;font-weight:500}
-.item-title{font-size:13px;font-weight:500}.item-url a{font-size:12px;color:var(--accent);text-decoration:none;word-break:break-all}
-.item-url a:hover{text-decoration:underline}.item-idea{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
-.item-date{font-size:11px;color:#aaa}
-.item-actions{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
-.status-sel{font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-family:inherit;background:var(--bg);cursor:pointer}
-.btn-del{font-size:11px;color:#ccc;background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px}
-.btn-del:hover{color:#e24b4a;background:#feecec}
-.prio-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:14px}
-.prio-high{background:#e24b4a}.prio-med{background:#ef9f27}.prio-low{background:#5dcaa5}
-.src-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
-.src-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px}
-.src-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
-.src-icon{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.src-name{font-size:13px;font-weight:600}.src-url a{font-size:11px;color:var(--accent);text-decoration:none}
-.src-url a:hover{text-decoration:underline}.src-desc{font-size:12px;color:var(--muted);line-height:1.5}
-.src-foot{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
-.btn-src-del{font-size:11px;color:#ccc;background:none;border:none;cursor:pointer}
-.btn-src-del:hover{color:#e24b4a}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:20px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px}
-.stat-n{font-size:26px;font-weight:700;line-height:1;margin-bottom:3px}.stat-l{font-size:11px;color:var(--muted)}
-.chart-row{display:flex;flex-direction:column;gap:6px}
-.chart-item{display:flex;align-items:center;gap:8px}.chart-label{font-size:12px;min-width:130px}
-.chart-bar-wrap{flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden}
-.chart-bar{height:100%;background:var(--accent);border-radius:3px;transition:width .4s}
-.chart-count{font-size:12px;color:var(--muted);min-width:24px;text-align:right}
-.section{display:none}.section.active{display:block}
+.item{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;display:flex;gap:12px;align-items:flex-start}
+.item:hover{border-color:#c0bdb5}.ibody{flex:1;min-width:0}
+.itop{display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap}
+.cb{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap}
+.cb-marketing{background:var(--mkt-bg);color:var(--mkt)}.cb-ai{background:var(--ai-bg);color:var(--ai)}
+.cb-both{background:var(--both-bg);color:var(--both)}.cb-news{background:var(--news-bg);color:var(--news)}
+.cb-case{background:#f0ede7;color:#555}
+.fb{font-size:10px;padding:2px 8px;border-radius:20px;background:#f0ede7;color:#666;font-weight:500}
+.ititle{font-size:13px;font-weight:500}
+.iurl a{font-size:12px;color:var(--accent);text-decoration:none;word-break:break-all}
+.iurl a:hover{text-decoration:underline}
+.iidea{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.idate{font-size:11px;color:#aaa}
+.iact{display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+.ssel{font-size:11px;padding:3px 6px;border:1px solid var(--border);border-radius:5px;font-family:inherit;background:var(--bg);cursor:pointer}
+.bdel{font-size:11px;color:#ccc;background:none;border:none;cursor:pointer;padding:2px 4px;border-radius:4px}
+.bdel:hover{color:#e24b4a;background:#feecec}
+.pdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:14px}
+.ph{background:#e24b4a}.pm{background:#ef9f27}.pl{background:#5dcaa5}
+.sgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:10px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.sh{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.si{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.sn{font-size:13px;font-weight:600}.su a{font-size:11px;color:var(--accent);text-decoration:none}
+.su a:hover{text-decoration:underline}.sd{font-size:12px;color:var(--muted);line-height:1.5}
+.sf{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+.bsd{font-size:11px;color:#ccc;background:none;border:none;cursor:pointer}
+.bsd:hover{color:#e24b4a}
+.stgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:20px}
+.stc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px}
+.stn{font-size:26px;font-weight:700;line-height:1;margin-bottom:3px}.stl{font-size:11px;color:var(--muted)}
+.cr{display:flex;flex-direction:column;gap:6px}
+.ci{display:flex;align-items:center;gap:8px}.cl{font-size:12px;min-width:130px}
+.cbw{flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden}
+.cbb{height:100%;background:var(--accent);border-radius:3px}.cc{font-size:12px;color:var(--muted);min-width:24px;text-align:right}
+.sec{display:none}.sec.on{display:block}
 .empty{text-align:center;padding:48px 20px;color:var(--muted);font-size:13px}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:10px 18px;border-radius:var(--r);font-size:13px;z-index:999;transform:translateY(80px);opacity:0;transition:all .25s}
 .toast.show{transform:translateY(0);opacity:1}
@@ -80,19 +83,19 @@ header{background:var(--ink);padding:12px 20px;display:flex;align-items:center;j
 <header>
   <div class="logo">К.<span>М</span> · Контент-монитор</div>
   <div class="hstats">
-    <div class="hstat"><span class="sdot loading" id="sdot"></span><span id="slabel">подключение...</span></div>
-    <div class="hstat">Ссылок: <b id="h-total">—</b></div>
-    <div class="hstat">В работе: <b id="h-wip">—</b></div>
-    <div class="hstat">Готово: <b id="h-done">—</b></div>
+    <div class="hstat"><span class="sdot loading" id="sdot"></span><span id="slbl">подключение...</span></div>
+    <div class="hstat">Ссылок: <b id="ht">—</b></div>
+    <div class="hstat">В работе: <b id="hw">—</b></div>
+    <div class="hstat">Готово: <b id="hd">—</b></div>
   </div>
 </header>
 <div class="tabs">
-  <button class="tab active" onclick="switchTab('links')">🔗 Банк ссылок</button>
-  <button class="tab" onclick="switchTab('sources')">📡 Источники</button>
-  <button class="tab" onclick="switchTab('stats')">📊 Статистика</button>
+  <button class="tab on" onclick="tab('links',0)">🔗 Банк ссылок</button>
+  <button class="tab" onclick="tab('sources',1)">📡 Источники</button>
+  <button class="tab" onclick="tab('stats',2)">📊 Статистика</button>
 </div>
 <div class="main">
-  <div id="tab-links" class="section active">
+  <div id="tab-links" class="sec on">
     <div class="add-form">
       <div class="form-row">
         <input class="f-url" id="l-url" type="url" placeholder="https://... ссылка">
@@ -123,25 +126,26 @@ header{background:var(--ink);padding:12px 20px;display:flex;align-items:center;j
           <option value="vk">VK-пост</option>
           <option value="digest">Дайджест</option>
         </select>
-        <button class="btn-add" id="btn-add-link" onclick="addLink()">+ Добавить</button>
-        <button class="btn-ai" id="btn-ai" onclick="analyzeContent()">🤖 AI-анализ</button>
+        <button class="btn-add" id="btn-add" onclick="addLink()">+ Добавить</button>
+        <button class="btn-ai" id="btn-ai" onclick="aiIdea()">🤖 AI-идея</button>
       </div>
     </div>
     <div class="filters">
-      <button class="fil-btn active" onclick="setF('all',this)">Все</button>
-      <button class="fil-btn" onclick="setF('ai',this)">🔵 AI</button>
-      <button class="fil-btn" onclick="setF('marketing',this)">🟢 Маркетинг</button>
-      <button class="fil-btn" onclick="setF('both',this)">🟡 Оба</button>
-      <button class="fil-btn" onclick="setF('news',this)">🟣 Новость</button>
-      <button class="fil-btn" onclick="setF('case',this)">⚪ Кейс</button>
-      <button class="fil-btn" onclick="setF('st:new',this)">🆕 Новые</button>
-      <button class="fil-btn" onclick="setF('st:wip',this)">⚙️ В работе</button>
-      <button class="fil-btn" onclick="setF('prio:high',this)">🔴 Срочные</button>
-      <input class="search-box" id="search" placeholder="🔍 Поиск..." oninput="renderLinks()">
+      <button class="fil on" onclick="flt('all',this)">Все</button>
+      <button class="fil" onclick="flt('ai',this)">🔵 AI</button>
+      <button class="fil" onclick="flt('marketing',this)">🟢 Маркетинг</button>
+      <button class="fil" onclick="flt('both',this)">🟡 Оба</button>
+      <button class="fil" onclick="flt('news',this)">🟣 Новость</button>
+      <button class="fil" onclick="flt('case',this)">⚪ Кейс</button>
+      <button class="fil" onclick="flt('st:new',this)">🆕 Новые</button>
+      <button class="fil" onclick="flt('st:wip',this)">⚙️ В работе</button>
+      <button class="fil" onclick="flt('prio:high',this)">🔴 Срочные</button>
+      <input class="sbox" id="search" placeholder="🔍 Поиск..." oninput="renderLinks()">
     </div>
-    <div id="items-list" class="items"><div class="empty">Загрузка...</div></div>
+    <div id="items" class="items"><div class="empty">Загрузка...</div></div>
   </div>
-  <div id="tab-sources" class="section">
+
+  <div id="tab-sources" class="sec">
     <div class="add-form">
       <div class="form-row">
         <input style="flex:2;min-width:160px" id="s-name" placeholder="Название источника">
@@ -161,235 +165,321 @@ header{background:var(--ink);padding:12px 20px;display:flex;align-items:center;j
           <option value="author">Автор VC/Дзен</option>
         </select>
         <input style="flex:3;min-width:180px" id="s-desc" placeholder="Почему полезен">
-        <button class="btn-add" id="btn-add-src" onclick="addSource()">+ Добавить</button>
+        <button class="btn-add" id="btn-src" onclick="addSource()">+ Добавить</button>
       </div>
     </div>
-    <div class="filters" id="src-filters">
-      <button class="fil-btn active" onclick="setSF('all',this)">Все</button>
-      <button class="fil-btn" onclick="setSF('ai',this)">🔵 AI</button>
-      <button class="fil-btn" onclick="setSF('marketing',this)">🟢 Маркетинг</button>
-      <button class="fil-btn" onclick="setSF('both',this)">🟡 Оба</button>
-      <button class="fil-btn" onclick="setSF('tg',this)">TG</button>
-      <button class="fil-btn" onclick="setSF('yt',this)">YouTube</button>
-      <button class="fil-btn" onclick="setSF('site',this)">Сайт</button>
-      <button class="fil-btn" onclick="setSF('author',this)">Авторы</button>
+    <div class="filters" id="sfil">
+      <button class="fil on" onclick="sflt('all',this)">Все</button>
+      <button class="fil" onclick="sflt('ai',this)">🔵 AI</button>
+      <button class="fil" onclick="sflt('marketing',this)">🟢 Маркетинг</button>
+      <button class="fil" onclick="sflt('both',this)">🟡 Оба</button>
+      <button class="fil" onclick="sflt('tg',this)">TG</button>
+      <button class="fil" onclick="sflt('yt',this)">YouTube</button>
+      <button class="fil" onclick="sflt('site',this)">Сайт</button>
+      <button class="fil" onclick="sflt('author',this)">Авторы</button>
     </div>
-    <div id="src-grid" class="src-grid"><div class="empty">Загрузка...</div></div>
+    <div id="sgrid" class="sgrid"><div class="empty">Загрузка...</div></div>
   </div>
-  <div id="tab-stats" class="section">
-    <div id="stats-content"><div class="empty">Загрузка...</div></div>
+
+  <div id="tab-stats" class="sec">
+    <div id="stats"><div class="empty">Загрузка...</div></div>
   </div>
 </div>
+
 <script>
-const SB_URL="https://lrjcxtprwpgrdemwyptv.supabase.co";
-const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxyamN4dHByd3BncmRlbXd5cHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzE3MTUsImV4cCI6MjA5MTkwNzcxNX0.gA67TpNrfrLxF48oSReVZt5oUSkc2-Jbl1K8CinKxsQ";
-const db=supabase.createClient(SB_URL,SB_KEY);
-const CAT={ai:"AI / Нейросети",marketing:"Маркетинг",both:"Маркетинг + AI",news:"Новость",case:"Кейс / Разбор"};
-const FMT={article:"Статья VC.ru",dzen:"Статья Дзен",tg:"TG-пост",yt:"YouTube",short:"Шортс",carousel:"Карусель",vk:"VK",digest:"Дайджест"};
-const ICONS={tg:"📱",site:"🌐",yt:"🎬",email:"📧",twitter:"🐦",author:"✍️"};
-const DEF_SRC=[
-  {id:"ds1",name:"TheRundown AI",url:"https://therundown.ai",cat:"ai",type:"email",description:"Лучший AI-дайджест. 5 новостей ежедневно."},
-  {id:"ds2",name:"Нейросети для людей",url:"https://t.me/aipeople",cat:"ai",type:"tg",description:"RU-AI новости, применение."},
-  {id:"ds3",name:"Дымшаков про AI",url:"https://t.me/dymshakovai",cat:"ai",type:"tg",description:"AI в бизнесе, практика."},
-  {id:"ds4",name:"PPC.World",url:"https://t.me/ppcworld",cat:"marketing",type:"tg",description:"Новости VK Ads, Директ, TG Ads."},
-  {id:"ds5",name:"Matt Wolfe",url:"https://youtube.com/@mreflow",cat:"ai",type:"yt",description:"Лучший EN-канал по AI-инструментам."},
-  {id:"ds6",name:"Гребенюк",url:"https://t.me/grebenuk",cat:"marketing",type:"tg",description:"Маркетинг, продажи, бизнес."},
-  {id:"ds7",name:"VC.ru Маркетинг",url:"https://vc.ru/marketing",cat:"marketing",type:"site",description:"Что обсуждают профессионалы."},
-  {id:"ds8",name:"@karpathy",url:"https://x.com/karpathy",cat:"ai",type:"twitter",description:"Лучшие объяснения как работает AI."},
+const SURL = "https://lrjcxtprwpgrdemwyptv.supabase.co";
+const SKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxyamN4dHByd3BncmRlbXd5cHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzE3MTUsImV4cCI6MjA5MTkwNzcxNX0.gA67TpNrfrLxF48oSReVZt5oUSkc2-Jbl1K8CinKxsQ";
+const db = supabase.createClient(SURL, SKEY);
+
+const CATS = {ai:"AI / Нейросети", marketing:"Маркетинг", both:"Маркетинг + AI", news:"Новость", case:"Кейс / Разбор"};
+const FMTS = {article:"Статья VC.ru", dzen:"Статья Дзен", tg:"TG-пост", yt:"YouTube", short:"Шортс", carousel:"Карусель", vk:"VK", digest:"Дайджест"};
+const ICONS = {tg:"📱", site:"🌐", yt:"🎬", email:"📧", twitter:"🐦", author:"✍️"};
+
+const DEF = [
+  {id:"d1",name:"TheRundown AI",url:"https://therundown.ai",cat:"ai",type:"email",description:"Лучший AI-дайджест. 5 новостей ежедневно."},
+  {id:"d2",name:"Нейросети для людей",url:"https://t.me/aipeople",cat:"ai",type:"tg",description:"RU-AI новости, применение."},
+  {id:"d3",name:"Дымшаков про AI",url:"https://t.me/dymshakovai",cat:"ai",type:"tg",description:"AI в бизнесе, практика."},
+  {id:"d4",name:"PPC.World",url:"https://t.me/ppcworld",cat:"marketing",type:"tg",description:"Новости VK Ads, Директ, TG Ads."},
+  {id:"d5",name:"Matt Wolfe",url:"https://youtube.com/@mreflow",cat:"ai",type:"yt",description:"Лучший EN-канал по AI-инструментам."},
+  {id:"d6",name:"Гребенюк",url:"https://t.me/grebenuk",cat:"marketing",type:"tg",description:"Маркетинг, продажи, бизнес."},
+  {id:"d7",name:"VC.ru Маркетинг",url:"https://vc.ru/marketing",cat:"marketing",type:"site",description:"Что обсуждают профессионалы."},
+  {id:"d8",name:"@karpathy",url:"https://x.com/karpathy",cat:"ai",type:"twitter",description:"Лучшие объяснения как работает AI."}
 ];
-let links=[],sources=[],lf="all",sf="all";
 
-// ========== AI АНАЛИЗ ==========
-async function analyzeContent() {
-  const url = document.getElementById('l-url').value;
-  const title = document.getElementById('l-title').value;
-  
-  if (!url && !title) {
-    toast('Сначала введите URL или название');
-    return;
-  }
-  
-  const btn = document.getElementById('btn-ai');
-  btn.disabled = true;
-  btn.textContent = '🤖 Анализ...';
-  
+let links = [], sources = [], lf = "all", sf = "all";
+
+async function init() {
+  sync("loading", "подключение...");
   try {
-    // 1. Анализируем категорию (Gemini)
-    const { data: analysis, error: err1 } = await supabase.functions.invoke('ai-analyze', {
-      body: { url, title, type: 'analyze' }
-    });
-    
-    if (err1) throw err1;
-    
-    // 2. Генерируем идеи (Groq)
-    const { data: creative, error: err2 } = await supabase.functions.invoke('ai-analyze', {
-      body: { url, title, type: 'ideas' }
-    });
-    
-    if (err2) throw err2;
-    
-    // Заполняем форму
-    document.getElementById('l-cat').value = analysis.category;
-    document.getElementById('l-idea').value = creative.ideas;
-    
-    toast(`✅ AI готов: ${analysis.category} | 3 идеи`);
-    
-  } catch (e) {
-    toast('❌ Ошибка AI: ' + e.message, 'err');
-    console.error(e);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🤖 AI-анализ';
+    await Promise.all([loadLinks(), loadSources()]);
+    sync("ok", "Supabase ✓");
+    if (!sources.length) {
+      const {error} = await db.from("sources").insert(DEF);
+      if (!error) { sources = DEF; renderSrc(); }
+    }
+  } catch(e) {
+    sync("err", "ошибка соединения");
+    toast("Ошибка подключения. Запусти SQL в Supabase.", "err");
   }
 }
 
-// ========== ОСНОВНЫЕ ФУНКЦИИ ==========
-async function init(){
-  sync("loading","подключение...");
-  try{
-    await Promise.all([loadLinks(),loadSources()]);
-    sync("ok","Supabase ✓");
-    if(!sources.length){const{error}=await db.from("sources").insert(DEF_SRC);if(!error){sources=DEF_SRC;renderSources();}}
-  }catch(e){sync("err","ошибка соединения");toast("Не удалось подключиться. Запусти SQL в Supabase.","err");}
+async function loadLinks() {
+  const {data, error} = await db.from("links").select("*").order("created_at", {ascending: false});
+  if (error) throw error;
+  links = data || [];
+  renderLinks();
+  updH();
 }
-async function loadLinks(){const{data,error}=await db.from("links").select("*").order("created_at",{ascending:false});if(error)throw error;links=data||[];renderLinks();updateH();}
-async function loadSources(){const{data,error}=await db.from("sources").select("*").order("created_at");if(error)throw error;sources=data||[];renderSources();}
-async function addLink(){
-  const url=v("l-url"),title=v("l-title");
-  if(!url&&!title){toast("Добавь ссылку или название");return;}
-  const btn=document.getElementById("btn-add-link");btn.disabled=true;btn.textContent="...";
-  const row={id:uid(),url,title,cat:g("l-cat"),prio:g("l-prio"),idea:v("l-idea"),fmt:g("l-fmt"),status:"new"};
-  const{error}=await db.from("links").insert([row]);
-  btn.disabled=false;btn.textContent="+ Добавить";
-  if(error){toast("Ошибка: "+error.message,"err");return;}
-  ["l-url","l-title","l-idea"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("l-fmt").value="";
-  await loadLinks();toast("Сохранено ✓");
-}
-async function setStatus(id,val){await db.from("links").update({status:val}).eq("id",id);const l=links.find(x=>x.id===id);if(l)l.status=val;updateH();}
-async function delLink(id){if(!confirm("Удалить запись?"))return;await db.from("links").delete().eq("id",id);links=links.filter(x=>x.id!==id);renderLinks();updateH();toast("Удалено");}
-async function addSource(){
-  const name=v("s-name");if(!name){toast("Введи название");return;}
-  const btn=document.getElementById("btn-add-src");btn.disabled=true;btn.textContent="...";
-  const row={id:uid(),name,url:v("s-url"),cat:g("s-cat"),type:g("s-type"),description:v("s-desc")};
-  const{error}=await db.from("sources").insert([row]);
-  btn.disabled=false;btn.textContent="+ Добавить";
-  if(error){toast("Ошибка: "+error.message,"err");return;}
-  ["s-name","s-url","s-desc"].forEach(id=>document.getElementById(id).value="");
-  await loadSources();toast("Источник добавлен ✓");
-}
-async function delSource(id){if(!confirm("Удалить?"))return;await db.from("sources").delete().eq("id",id);sources=sources.filter(x=>x.id!==id);renderSources();toast("Удалено");}
 
-// ========== РЕНДЕРИНГ ==========
-function renderLinks(){
-  const q=(document.getElementById("search")?.value||"").toLowerCase();
-  const items=links.filter(l=>{
-    const m=!q||[l.title,l.url,l.idea].filter(Boolean).some(s=>s.toLowerCase().includes(q));
-    if(!m)return false;
-    if(lf==="all")return true;
-    if(lf.startsWith("st:"))return l.status===lf.slice(3);
-    if(lf.startsWith("prio:"))return l.prio===lf.slice(5);
-    return l.cat===lf;
+async function loadSources() {
+  const {data, error} = await db.from("sources").select("*").order("created_at");
+  if (error) throw error;
+  sources = data || [];
+  renderSrc();
+}
+
+async function addLink() {
+  const url = gv("l-url"), title = gv("l-title");
+  if (!url && !title) { toast("Добавь ссылку или название"); return; }
+  const btn = id("btn-add"); btn.disabled = true; btn.textContent = "...";
+  const row = {id: uid(), url, title, cat: gs("l-cat"), prio: gs("l-prio"), idea: gv("l-idea"), fmt: gs("l-fmt"), status: "new"};
+  const {error} = await db.from("links").insert([row]);
+  btn.disabled = false; btn.textContent = "+ Добавить";
+  if (error) { toast("Ошибка: " + error.message, "err"); return; }
+  ["l-url","l-title","l-idea"].forEach(x => id(x).value = "");
+  id("l-fmt").value = "";
+  await loadLinks();
+  toast("Сохранено ✓");
+}
+
+async function setSt(lid, val) {
+  await db.from("links").update({status: val}).eq("id", lid);
+  const l = links.find(x => x.id === lid);
+  if (l) l.status = val;
+  updH();
+}
+
+async function delLink(lid) {
+  if (!confirm("Удалить запись?")) return;
+  await db.from("links").delete().eq("id", lid);
+  links = links.filter(x => x.id !== lid);
+  renderLinks(); updH();
+  toast("Удалено");
+}
+
+async function addSource() {
+  const name = gv("s-name");
+  if (!name) { toast("Введи название"); return; }
+  const btn = id("btn-src"); btn.disabled = true; btn.textContent = "...";
+  const row = {id: uid(), name, url: gv("s-url"), cat: gs("s-cat"), type: gs("s-type"), description: gv("s-desc")};
+  const {error} = await db.from("sources").insert([row]);
+  btn.disabled = false; btn.textContent = "+ Добавить";
+  if (error) { toast("Ошибка: " + error.message, "err"); return; }
+  ["s-name","s-url","s-desc"].forEach(x => id(x).value = "");
+  await loadSources();
+  toast("Источник добавлен ✓");
+}
+
+async function delSrc(sid) {
+  if (!confirm("Удалить источник?")) return;
+  await db.from("sources").delete().eq("id", sid);
+  sources = sources.filter(x => x.id !== sid);
+  renderSrc();
+  toast("Удалено");
+}
+
+async function aiIdea() {
+  const url = gv("l-url"), title = gv("l-title");
+  if (!url && !title) { toast("Введи ссылку или название"); return; }
+  const btn = id("btn-ai"); btn.disabled = true; btn.textContent = "🤖 Думаю...";
+  try {
+    const {data: r1, error: e1} = await db.functions.invoke("rapid-worker", {body: {url, title, type: "analyze"}});
+    if (e1) throw e1;
+    const {data: r2, error: e2} = await db.functions.invoke("rapid-worker", {body: {url, title, type: "ideas"}});
+    if (e2) throw e2;
+    id("l-cat").value = r1.category || "case";
+    id("l-idea").value = r2.ideas || "";
+    toast("✅ Категория и идея заполнены");
+  } catch(e) {
+    toast("AI ошибка: " + e.message, "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "🤖 AI-идея";
+  }
+}
+
+function renderLinks() {
+  const q = (id("search") ? id("search").value : "").toLowerCase();
+  const items = links.filter(l => {
+    const m = !q || [l.title, l.url, l.idea].filter(Boolean).some(s => s.toLowerCase().includes(q));
+    if (!m) return false;
+    if (lf === "all") return true;
+    if (lf.startsWith("st:")) return l.status === lf.slice(3);
+    if (lf.startsWith("prio:")) return l.prio === lf.slice(5);
+    return l.cat === lf;
   });
-  const el=document.getElementById("items-list");
-  if(!items.length){el.innerHTML="<div class='empty'>Пока ничего нет. Добавь первую ссылку ☝️</div>";return;}
-  el.innerHTML=items.map(l=>{
-    const pd=l.prio==="high"?"prio-high":l.prio==="med"?"prio-med":"prio-low";
-    const dt=l.created_at?new Date(l.created_at).toLocaleDateString("ru-RU",{day:"2-digit",month:"2-digit"}):"";
-    return "<div class='item'>"
-      +"<div class='prio-dot "+pd+"'></div>"
-      +"<div class='item-body'>"
-      +"<div class='item-top'>"
-      +"<span class='cat-badge cat-"+l.cat+"'>"+e(CAT[l.cat]||l.cat)+"</span>"
-      +(l.fmt?"<span class='fmt-badge'>"+e(FMT[l.fmt]||l.fmt)+"</span>":"")
-      +"<span class='item-date'>"+dt+"</span>"
-      +"</div>"
-      +(l.title?"<div class='item-title'>"+e(l.title)+"</div>":"")
-      +(l.url?"<div class='item-url'><a href='"+e(l.url)+"' target='_blank'>"+e(l.url.length>72?l.url.slice(0,72)+"…":l.url)+"</a></div>":"")
-      +(l.idea?"<div class='item-idea'>💡 "+e(l.idea)+"</div>":"")
-      +"</div>"
-      +"<div class='item-actions'>"
-      +"<select class='status-sel' onchange='setStatus(\""+l.id+"\",this.value)'>"
-      +"<option value='new' "+(l.status==="new"?"selected":"")+">🆕 Новое</option>"
-      +"<option value='wip' "+(l.status==="wip"?"selected":"")+">⚙️ В работе</option>"
-      +"<option value='done' "+(l.status==="done"?"selected":"")+">✅ Готово</option>"
-      +"<option value='skip' "+(l.status==="skip"?"selected":"")+">⏸ Отложено</option>"
-      +"</select>"
-      +"<button class='btn-del' onclick='delLink(\""+l.id+"\")'>✕ удалить</button>"
-      +"</div></div>";
+  const el = id("items");
+  if (!items.length) { el.innerHTML = '<div class="empty">Пока ничего. Добавь первую ссылку ☝️</div>'; return; }
+  el.innerHTML = items.map(function(l) {
+    var pd = l.prio === "high" ? "ph" : l.prio === "med" ? "pm" : "pl";
+    var dt = l.created_at ? new Date(l.created_at).toLocaleDateString("ru-RU", {day:"2-digit", month:"2-digit"}) : "";
+    var cat = CATS[l.cat] || l.cat;
+    var fmt = FMTS[l.fmt] || "";
+    var html = '<div class="item">';
+    html += '<div class="pdot ' + pd + '"></div>';
+    html += '<div class="ibody">';
+    html += '<div class="itop">';
+    html += '<span class="cb cb-' + l.cat + '">' + esc(cat) + '</span>';
+    if (fmt) html += '<span class="fb">' + esc(fmt) + '</span>';
+    html += '<span class="idate">' + dt + '</span>';
+    html += '</div>';
+    if (l.title) html += '<div class="ititle">' + esc(l.title) + '</div>';
+    if (l.url) {
+      var disp = l.url.length > 72 ? l.url.slice(0,72) + "…" : l.url;
+      html += '<div class="iurl"><a href="' + esc(l.url) + '" target="_blank">' + esc(disp) + '</a></div>';
+    }
+    if (l.idea) html += '<div class="iidea">💡 ' + esc(l.idea) + '</div>';
+    html += '</div>';
+    html += '<div class="iact">';
+    html += '<select class="ssel" onchange="setSt('' + l.id + '',this.value)">';
+    html += '<option value="new"' + (l.status==="new"?" selected":"") + '>🆕 Новое</option>';
+    html += '<option value="wip"' + (l.status==="wip"?" selected":"") + '>⚙️ В работе</option>';
+    html += '<option value="done"' + (l.status==="done"?" selected":"") + '>✅ Готово</option>';
+    html += '<option value="skip"' + (l.status==="skip"?" selected":"") + '>⏸ Отложено</option>';
+    html += '</select>';
+    html += '<button class="bdel" onclick="delLink('' + l.id + '')">✕ удалить</button>';
+    html += '</div></div>';
+    return html;
   }).join("");
 }
-function renderSources(){
-  const srcs=sources.filter(s=>sf==="all"?true:s.cat===sf||s.type===sf);
-  const el=document.getElementById("src-grid");
-  if(!srcs.length){el.innerHTML="<div class='empty'>Нет источников по этому фильтру.</div>";return;}
-  el.innerHTML=srcs.map(s=>{
-    const ico=ICONS[s.type]||"🔗";
-    const catLbl={ai:"AI",marketing:"Маркетинг",both:"Оба",news:"Новости"}[s.cat]||s.cat;
-    const dom=s.url?(()=>{try{return new URL(s.url).hostname.replace("www.","")}catch{return s.url}})():"";
-    return "<div class='src-card'>"
-      +"<div class='src-head'><div class='src-icon'>"+ico+"</div><div>"
-      +"<div class='src-name'>"+e(s.name)+"</div>"
-      +(dom?"<div class='src-url'><a href='"+e(s.url)+"' target='_blank'>"+e(dom)+"</a></div>":"")
-      +"</div></div>"
-      +"<div class='src-desc'>"+e(s.description||"")+"</div>"
-      +"<div class='src-foot'>"
-      +"<span class='cat-badge cat-"+s.cat+"' style='font-size:10px'>"+catLbl+"</span>"
-      +"<button class='btn-src-del' onclick='delSource(\""+s.id+"\")'>✕</button>"
-      +"</div></div>";
+
+function renderSrc() {
+  var srcs = sources.filter(function(s) {
+    return sf === "all" ? true : s.cat === sf || s.type === sf;
+  });
+  var el = id("sgrid");
+  if (!srcs.length) { el.innerHTML = '<div class="empty">Нет источников.</div>'; return; }
+  el.innerHTML = srcs.map(function(s) {
+    var ico = ICONS[s.type] || "🔗";
+    var cmap = {ai:"AI", marketing:"Маркетинг", both:"Оба", news:"Новости"};
+    var catLbl = cmap[s.cat] || s.cat;
+    var dom = "";
+    if (s.url) { try { dom = new URL(s.url).hostname.replace("www.",""); } catch(e) { dom = s.url; } }
+    var html = '<div class="sc">';
+    html += '<div class="sh"><div class="si">' + ico + '</div><div>';
+    html += '<div class="sn">' + esc(s.name) + '</div>';
+    if (dom) html += '<div class="su"><a href="' + esc(s.url) + '" target="_blank">' + esc(dom) + '</a></div>';
+    html += '</div></div>';
+    html += '<div class="sd">' + esc(s.description||"") + '</div>';
+    html += '<div class="sf">';
+    html += '<span class="cb cb-' + s.cat + '" style="font-size:10px">' + catLbl + '</span>';
+    html += '<button class="bsd" onclick="delSrc('' + s.id + '')">✕</button>';
+    html += '</div></div>';
+    return html;
   }).join("");
 }
-function renderStats(){
-  const bc={},bs={new:0,wip:0,done:0,skip:0},bf={};
-  links.forEach(l=>{bc[l.cat]=(bc[l.cat]||0)+1;bs[l.status]=(bs[l.status]||0)+1;if(l.fmt)bf[l.fmt]=(bf[l.fmt]||0)+1;});
-  const tot=links.length||1;
-  const tf=Object.entries(bf).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  document.getElementById("stats-content").innerHTML=
-    "<div class='stats-grid'>"
-    +"<div class='stat-card'><div class='stat-n'>"+links.length+"</div><div class='stat-l'>Всего ссылок</div></div>"
-    +"<div class='stat-card'><div class='stat-n' style='color:var(--accent)'>"+bs.new+"</div><div class='stat-l'>Новых</div></div>"
-    +"<div class='stat-card'><div class='stat-n' style='color:#ef9f27'>"+bs.wip+"</div><div class='stat-l'>В работе</div></div>"
-    +"<div class='stat-card'><div class='stat-n' style='color:var(--mkt)'>"+bs.done+"</div><div class='stat-l'>Готово</div></div>"
-    +"<div class='stat-card'><div class='stat-n'>"+sources.length+"</div><div class='stat-l'>Источников</div></div>"
-    +"</div>"
-    +"<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px'>"
-    +"<div style='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px'>"
-    +"<div style='font-size:13px;font-weight:600;margin-bottom:12px'>По тематике</div>"
-    +"<div class='chart-row'>"
-    +Object.entries(CAT).filter(([k])=>bc[k]).map(([k,lbl])=>
-      "<div class='chart-item'>"
-      +"<div class='chart-label'><span class='cat-badge cat-"+k+"' style='font-size:10px'>"+lbl+"</span></div>"
-      +"<div class='chart-bar-wrap'><div class='chart-bar' style='width:"+Math.round((bc[k]||0)/tot*100)+"%'></div></div>"
-      +"<div class='chart-count'>"+(bc[k]||0)+"</div></div>").join("")
-    +"</div></div>"
-    +"<div style='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px'>"
-    +"<div style='font-size:13px;font-weight:600;margin-bottom:12px'>Топ форматов</div>"
-    +"<div class='chart-row'>"
-    +(tf.length?tf.map(([k,val])=>
-      "<div class='chart-item'>"
-      +"<div class='chart-label'><span class='fmt-badge'>"+(FMT[k]||k)+"</span></div>"
-      +"<div class='chart-bar-wrap'><div class='chart-bar' style='width:"+Math.round(val/tot*100)+"%;background:#ef9f27'></div></div>"
-      +"<div class='chart-count'>"+val+"</div></div>").join("")
-      :"<div style='font-size:12px;color:var(--muted)'>Добавь ссылки с форматом</div>")
-    +"</div></div></div>";
-}
-function switchTab(n){
-  ["links","sources","stats"].forEach((t,i)=>{
-    document.querySelectorAll(".tab")[i].classList.toggle("active",t===n);
-    document.getElementById("tab-"+t).classList.toggle("active",t===n);
+
+function renderStats() {
+  var bc = {}, bs = {new:0,wip:0,done:0,skip:0}, bf = {};
+  links.forEach(function(l) {
+    bc[l.cat] = (bc[l.cat]||0)+1;
+    bs[l.status] = (bs[l.status]||0)+1;
+    if (l.fmt) bf[l.fmt] = (bf[l.fmt]||0)+1;
   });
-  if(n==="stats")renderStats();
+  var tot = links.length || 1;
+  var tf = Object.entries(bf).sort(function(a,b){return b[1]-a[1];}).slice(0,5);
+
+  var html = '<div class="stgrid">';
+  html += '<div class="stc"><div class="stn">' + links.length + '</div><div class="stl">Всего ссылок</div></div>';
+  html += '<div class="stc"><div class="stn" style="color:var(--accent)">' + bs.new + '</div><div class="stl">Новых</div></div>';
+  html += '<div class="stc"><div class="stn" style="color:#ef9f27">' + bs.wip + '</div><div class="stl">В работе</div></div>';
+  html += '<div class="stc"><div class="stn" style="color:var(--mkt)">' + bs.done + '</div><div class="stl">Готово</div></div>';
+  html += '<div class="stc"><div class="stn">' + sources.length + '</div><div class="stl">Источников</div></div>';
+  html += '</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">';
+  html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px">';
+  html += '<div style="font-size:13px;font-weight:600;margin-bottom:12px">По тематике</div>';
+  html += '<div class="cr">';
+  Object.entries(CATS).forEach(function(kv) {
+    var k = kv[0], lbl = kv[1];
+    if (!bc[k]) return;
+    html += '<div class="ci"><div class="cl"><span class="cb cb-' + k + '" style="font-size:10px">' + lbl + '</span></div>';
+    html += '<div class="cbw"><div class="cbb" style="width:' + Math.round((bc[k]||0)/tot*100) + '%"></div></div>';
+    html += '<div class="cc">' + (bc[k]||0) + '</div></div>';
+  });
+  html += '</div></div>';
+  html += '<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px">';
+  html += '<div style="font-size:13px;font-weight:600;margin-bottom:12px">Топ форматов</div>';
+  html += '<div class="cr">';
+  if (tf.length) {
+    tf.forEach(function(kv) {
+      var k = kv[0], v = kv[1];
+      html += '<div class="ci"><div class="cl"><span class="fb">' + (FMTS[k]||k) + '</span></div>';
+      html += '<div class="cbw"><div class="cbb" style="width:' + Math.round(v/tot*100) + '%;background:#ef9f27"></div></div>';
+      html += '<div class="cc">' + v + '</div></div>';
+    });
+  } else {
+    html += '<div style="font-size:12px;color:var(--muted)">Добавь ссылки с форматом</div>';
+  }
+  html += '</div></div></div>';
+  id("stats").innerHTML = html;
 }
-function setF(f,btn){lf=f;document.querySelectorAll("#tab-links .fil-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderLinks();}
-function setSF(f,btn){sf=f;document.querySelectorAll("#src-filters .fil-btn").forEach(b=>b.classList.remove("active"));btn.classList.add("active");renderSources();}
-function updateH(){document.getElementById("h-total").textContent=links.length;document.getElementById("h-wip").textContent=links.filter(l=>l.status==="wip").length;document.getElementById("h-done").textContent=links.filter(l=>l.status==="done").length;}
-function sync(s,l){const d=document.getElementById("sdot");d.className="sdot"+(s==="ok"?"":" "+s);document.getElementById("slabel").textContent=l;}
-function toast(msg,type){const t=document.getElementById("toast");t.textContent=msg;t.style.background=type==="err"?"#a32d2d":"#0d0d0d";t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500);}
-function v(id){return document.getElementById(id)?.value?.trim()||"";}
-function g(id){return document.getElementById(id)?.value||"";}
-function e(s){return(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
-function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
-document.addEventListener("keydown",ev=>{if(ev.key!=="Enter")return;const tab=document.querySelector(".section.active");if(!tab)return;if(tab.id==="tab-links"&&document.activeElement.closest(".add-form"))addLink();if(tab.id==="tab-sources"&&document.activeElement.closest(".add-form"))addSource();});
+
+function tab(name, idx) {
+  document.querySelectorAll(".tab").forEach(function(t,i){ t.classList.toggle("on", i===idx); });
+  ["links","sources","stats"].forEach(function(n) {
+    id("tab-"+n).classList.toggle("on", n===name);
+  });
+  if (name === "stats") renderStats();
+}
+
+function flt(f, btn) {
+  lf = f;
+  document.querySelectorAll("#tab-links .fil").forEach(function(b){ b.classList.remove("on"); });
+  btn.classList.add("on");
+  renderLinks();
+}
+
+function sflt(f, btn) {
+  sf = f;
+  document.querySelectorAll("#sfil .fil").forEach(function(b){ b.classList.remove("on"); });
+  btn.classList.add("on");
+  renderSrc();
+}
+
+function updH() {
+  id("ht").textContent = links.length;
+  id("hw").textContent = links.filter(function(l){ return l.status==="wip"; }).length;
+  id("hd").textContent = links.filter(function(l){ return l.status==="done"; }).length;
+}
+
+function sync(s, lbl) {
+  var d = id("sdot");
+  d.className = "sdot" + (s==="ok" ? "" : " "+s);
+  id("slbl").textContent = lbl;
+}
+
+function toast(msg, type) {
+  var t = id("toast");
+  t.textContent = msg;
+  t.style.background = type==="err" ? "#a32d2d" : "#0d0d0d";
+  t.classList.add("show");
+  setTimeout(function(){ t.classList.remove("show"); }, 2500);
+}
+
+function id(x) { return document.getElementById(x); }
+function gv(x) { var el = id(x); return el ? el.value.trim() : ""; }
+function gs(x) { var el = id(x); return el ? el.value : ""; }
+function esc(s) { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+document.addEventListener("keydown", function(ev) {
+  if (ev.key !== "Enter") return;
+  var tab = document.querySelector(".sec.on");
+  if (!tab) return;
+  if (tab.id === "tab-links" && document.activeElement.closest(".add-form")) addLink();
+  if (tab.id === "tab-sources" && document.activeElement.closest(".add-form")) addSource();
+});
+
 init();
 </script>
 </body>
