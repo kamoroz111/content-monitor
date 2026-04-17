@@ -1,1613 +1,2088 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Мониторинг контента — Кирилл Морозов</title>
+  <title>Контент-система — Кирилл Морозов</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root{
-      --ink:#0d0d0d;
-      --bg:#fafaf7;
-      --card:#fff;
-      --border:#e0dcd5;
-      --muted:#777;
-      --accent:#1847c8;
-      --r:8px;
-      --mkt:#3b6d11;
-      --mkt-bg:#eaf3de;
-      --ai:#0c447c;
-      --ai-bg:#e6f1fb;
-      --both:#633806;
-      --both-bg:#faeeda;
-      --news:#534ab7;
-      --news-bg:#eeedfe;
-    }
-
-    *{box-sizing:border-box;margin:0;padding:0}
-
-    body{
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-      background:var(--bg);
-      color:var(--ink);
-      font-size:14px;
-    }
-
-    .hidden{display:none !important}
-
-    body.auth-locked .tabs,
-    body.auth-locked .main{
-      filter:blur(2px);
-      pointer-events:none;
-      user-select:none;
-    }
-
-    header{
-      background:var(--ink);
-      padding:12px 20px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:16px;
-      position:sticky;
-      top:0;
-      z-index:100;
-      flex-wrap:wrap;
-    }
-
-    .logo{
-      color:#fff;
-      font-size:15px;
-      font-weight:600;
-      white-space:nowrap;
-    }
-
-    .logo span{color:#7aa4f5}
-
-    .header-right{
-      display:flex;
-      align-items:center;
-      gap:18px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-
-    .hstats{
-      display:flex;
-      gap:16px;
-      flex-wrap:wrap;
-    }
-
-    .hstat{
-      color:rgba(255,255,255,.45);
-      font-size:12px;
-      white-space:nowrap;
-    }
-
-    .hstat b{color:#fff}
-
-    .auth-actions{
-      display:flex;
-      align-items:center;
-      gap:10px;
-      flex-wrap:wrap;
-    }
-
-    .user-email{
-      color:rgba(255,255,255,.8);
-      font-size:12px;
-    }
-
-    .btn-logout{
-      background:rgba(255,255,255,.08);
-      color:#fff;
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:6px;
-      padding:7px 10px;
-      font-size:12px;
-      cursor:pointer;
-      transition:background .15s,border-color .15s;
-    }
-
-    .btn-logout:hover{
-      background:rgba(255,255,255,.14);
-      border-color:rgba(255,255,255,.22);
-    }
-
-    .sdot{
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      background:#5dcaa5;
-      display:inline-block;
-      margin-right:5px;
-    }
-
-    .sdot.err{background:#e24b4a}
-    .sdot.loading{background:#ef9f27;animation:pulse 1s infinite}
-
-    @keyframes pulse{
-      0%,100%{opacity:1}
-      50%{opacity:.4}
-    }
-
-    .tabs{
-      display:flex;
-      gap:2px;
-      padding:12px 20px 0;
-      border-bottom:1px solid var(--border);
-      background:var(--card);
-      overflow-x:auto;
-    }
-
-    .tab{
-      padding:8px 16px;
-      font-size:13px;
-      font-weight:500;
-      cursor:pointer;
-      border:none;
-      background:none;
-      color:var(--muted);
-      border-bottom:2px solid transparent;
-      white-space:nowrap;
-      transition:color .15s;
-    }
-
-    .tab.active{
-      color:var(--accent);
-      border-bottom-color:var(--accent);
-    }
-
-    .tab:hover{color:var(--ink)}
-
-    .main{
-      padding:16px 20px;
-      max-width:1200px;
-      margin:0 auto;
-    }
-
-    .error-banner{
-      background:#fff2f2;
-      color:#8f1f1f;
-      border:1px solid #f0c9c9;
-      border-radius:var(--r);
-      padding:12px 14px;
-      margin-bottom:14px;
-      line-height:1.5;
-      white-space:pre-wrap;
-      word-break:break-word;
-    }
-
-    .add-form{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:var(--r);
-      padding:14px;
-      margin-bottom:14px;
-    }
-
-    .form-row{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-bottom:8px;
-    }
-
-    .form-row:last-child{margin-bottom:0}
-
-    .form-row input,
-    .form-row select{
-      font-family:inherit;
-      font-size:13px;
-      padding:8px 10px;
-      border:1px solid var(--border);
-      border-radius:6px;
-      background:var(--bg);
-      color:var(--ink);
-      outline:none;
-      transition:border-color .15s;
-    }
-
-    .form-row input:focus,
-    .form-row select:focus{
-      border-color:var(--accent);
-    }
-
-    .f-url{flex:2;min-width:220px}
-    .f-title{flex:3;min-width:180px}
-    .f-idea{flex:4;min-width:220px}
-    .f-cat{width:155px}
-    .f-prio{width:125px}
-    .f-fmt{width:145px}
-    .f-src{width:180px}
-
-    .btn-add{
-      background:var(--ink);
-      color:#fff;
-      border:none;
-      border-radius:6px;
-      padding:8px 18px;
-      font-size:13px;
-      font-weight:600;
-      cursor:pointer;
-      white-space:nowrap;
-      transition:background .15s;
-    }
-
-    .btn-add:hover{background:var(--accent)}
-    .btn-add:disabled{opacity:.5;cursor:wait}
-
-    .btn-ai{
-      background:#633806;
-      color:#fff;
-      border:none;
-      border-radius:6px;
-      padding:8px 18px;
-      font-size:13px;
-      font-weight:600;
-      cursor:pointer;
-      white-space:nowrap;
-      transition:background .15s;
-      margin-left:8px;
-    }
-
-    .btn-ai:hover{background:#7a4a0a}
-    .btn-ai:disabled{opacity:.5;cursor:wait}
-
-    .filters{
-      display:flex;
-      gap:6px;
-      margin-bottom:12px;
-      flex-wrap:wrap;
-      align-items:center;
-    }
-
-    .fil-btn{
-      padding:5px 12px;
-      border-radius:20px;
-      border:1px solid var(--border);
-      background:none;
-      font-size:12px;
-      font-weight:500;
-      color:var(--muted);
-      cursor:pointer;
-      transition:all .15s;
-      white-space:nowrap;
-    }
-
-    .fil-btn.active{
-      background:var(--ink);
-      color:#fff;
-      border-color:var(--ink);
-    }
-
-    .fil-btn:hover{color:var(--ink)}
-
-    .search-box{
-      padding:6px 10px;
-      border:1px solid var(--border);
-      border-radius:20px;
-      font-size:13px;
-      font-family:inherit;
-      background:var(--bg);
-      color:var(--ink);
-      outline:none;
-      min-width:220px;
-    }
-
-    .search-box:focus{border-color:var(--accent)}
-
-    .items{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-
-    .item{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:var(--r);
-      padding:12px 14px;
-      display:flex;
-      gap:12px;
-      align-items:flex-start;
-      transition:border-color .15s;
-    }
-
-    .item:hover{border-color:#c0bdb5}
-
-    .item-body{flex:1;min-width:0}
-
-    .item-top{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      margin-bottom:5px;
-      flex-wrap:wrap;
-    }
-
-    .cat-badge{
-      font-size:10px;
-      font-weight:700;
-      padding:2px 8px;
-      border-radius:20px;
-      white-space:nowrap;
-    }
-
-    .cat-marketing{background:var(--mkt-bg);color:var(--mkt)}
-    .cat-ai{background:var(--ai-bg);color:var(--ai)}
-    .cat-both{background:var(--both-bg);color:var(--both)}
-    .cat-news{background:var(--news-bg);color:var(--news)}
-    .cat-case{background:#f0ede7;color:#555}
-
-    .fmt-badge{
-      font-size:10px;
-      padding:2px 8px;
-      border-radius:20px;
-      background:#f0ede7;
-      color:#666;
-      font-weight:500;
-    }
-
-    .src-inline{
-      font-size:11px;
-      color:var(--muted);
-    }
-
-    .item-title{
-      font-size:13px;
-      font-weight:500;
-      line-height:1.45;
-    }
-
-    .item-url a{
-      font-size:12px;
-      color:var(--accent);
-      text-decoration:none;
-      word-break:break-all;
-    }
-
-    .item-url a:hover{text-decoration:underline}
-
-    .item-idea{
-      font-size:12px;
-      color:var(--muted);
-      margin-top:4px;
-      line-height:1.5;
-    }
-
-    .item-date{
-      font-size:11px;
-      color:#aaa;
-    }
-
-    .item-actions{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      flex-shrink:0;
-    }
-
-    .status-sel{
-      font-size:11px;
-      padding:3px 6px;
-      border:1px solid var(--border);
-      border-radius:5px;
-      font-family:inherit;
-      background:var(--bg);
-      cursor:pointer;
-    }
-
-    .btn-del{
-      font-size:11px;
-      color:#ccc;
-      background:none;
-      border:none;
-      cursor:pointer;
-      padding:2px 4px;
-      border-radius:4px;
-    }
-
-    .btn-del:hover{
-      color:#e24b4a;
-      background:#feecec;
-    }
-
-    .prio-dot{
-      width:8px;
-      height:8px;
-      border-radius:50%;
-      flex-shrink:0;
-      margin-top:14px;
-    }
-
-    .prio-high{background:#e24b4a}
-    .prio-med{background:#ef9f27}
-    .prio-low{background:#5dcaa5}
-
-    .src-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(270px,1fr));
-      gap:10px;
-    }
-
-    .src-card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:var(--r);
-      padding:14px;
-    }
-
-    .src-head{
-      display:flex;
-      align-items:flex-start;
-      gap:10px;
-      margin-bottom:8px;
-    }
-
-    .src-icon{
-      width:36px;
-      height:36px;
-      border-radius:8px;
-      border:1px solid var(--border);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:16px;
-      flex-shrink:0;
-    }
-
-    .src-name{font-size:13px;font-weight:600}
-
-    .src-url a{
-      font-size:11px;
-      color:var(--accent);
-      text-decoration:none;
-    }
-
-    .src-url a:hover{text-decoration:underline}
-
-    .src-desc{
-      font-size:12px;
-      color:var(--muted);
-      line-height:1.5;
-    }
-
-    .src-foot{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:10px;
-    }
-
-    .btn-src-del{
-      font-size:11px;
-      color:#ccc;
-      background:none;
-      border:none;
-      cursor:pointer;
-    }
-
-    .btn-src-del:hover{color:#e24b4a}
-
-    .stats-grid{
-      display:grid;
-      grid-template-columns:repeat(auto-fit,minmax(110px,1fr));
-      gap:10px;
-      margin-bottom:20px;
-    }
-
-    .stat-card{
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:var(--r);
-      padding:12px 16px;
-    }
-
-    .stat-n{
-      font-size:26px;
-      font-weight:700;
-      line-height:1;
-      margin-bottom:3px;
-    }
-
-    .stat-l{
-      font-size:11px;
-      color:var(--muted);
-    }
-
-    .chart-row{
-      display:flex;
-      flex-direction:column;
-      gap:6px;
-    }
-
-    .chart-item{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    .chart-label{
-      font-size:12px;
-      min-width:130px;
-    }
-
-    .chart-bar-wrap{
-      flex:1;
-      height:6px;
-      background:#f0f0f0;
-      border-radius:3px;
-      overflow:hidden;
-    }
-
-    .chart-bar{
-      height:100%;
-      background:var(--accent);
-      border-radius:3px;
-      transition:width .4s;
-    }
-
-    .chart-count{
-      font-size:12px;
-      color:var(--muted);
-      min-width:24px;
-      text-align:right;
-    }
-
-    .section{display:none}
-    .section.active{display:block}
-
-    .empty{
-      text-align:center;
-      padding:48px 20px;
-      color:var(--muted);
-      font-size:13px;
-      background:var(--card);
-      border:1px dashed var(--border);
-      border-radius:var(--r);
-    }
-
-    .toast{
-      position:fixed;
-      bottom:20px;
-      right:20px;
-      background:var(--ink);
-      color:#fff;
-      padding:10px 18px;
-      border-radius:var(--r);
-      font-size:13px;
-      z-index:999;
-      transform:translateY(80px);
-      opacity:0;
-      transition:all .25s;
-    }
-
-    .toast.show{
-      transform:translateY(0);
-      opacity:1;
-    }
-
-    .login-overlay{
-      position:fixed;
-      inset:0;
-      background:rgba(250,250,247,.92);
-      backdrop-filter:blur(4px);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      z-index:1000;
-      padding:20px;
-    }
-
-    .login-card{
-      width:min(520px,100%);
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:14px;
-      padding:22px;
-      box-shadow:0 20px 60px rgba(0,0,0,.08);
-    }
-
-    .login-title{
-      font-size:20px;
-      font-weight:700;
-      margin-bottom:8px;
-    }
-
-    .login-sub{
-      font-size:13px;
-      color:var(--muted);
-      line-height:1.55;
-      margin-bottom:16px;
-    }
-
-    .login-row{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-bottom:8px;
-    }
-
-    .login-row:last-child{margin-bottom:0}
-
-    .login-input{
-      flex:1;
-      min-width:220px;
-      font-family:inherit;
-      font-size:14px;
-      padding:10px 12px;
-      border:1px solid var(--border);
-      border-radius:8px;
-      background:var(--bg);
-      color:var(--ink);
-      outline:none;
-    }
-
-    .login-input:focus{border-color:var(--accent)}
-
-    @media (max-width: 720px){
-      header{
-        align-items:flex-start;
-      }
-
-      .header-right{
-        width:100%;
-        justify-content:space-between;
-      }
-
-      .item{
-        flex-direction:column;
-      }
-
-      .item-actions{
-        width:100%;
-        flex-direction:row;
-        justify-content:space-between;
-      }
+      --bg:#f4f7fb;
+      --panel:#ffffff;
+      --panel-soft:#f8fbff;
+      --border:#e2e8f0;
+      --border-strong:#d3dbe7;
+      --text:#17212b;
+      --muted:#697586;
+      --muted-soft:#93a1b2;
+      --accent:#1f66d1;
+      --accent-soft:#eaf2ff;
+      --green:#1f9a6d;
+      --red:#d05151;
+      --amber:#c98d18;
+      --purple:#7d66d9;
+      --shadow:0 10px 28px rgba(16,24,40,.06);
+      --radius:18px;
+      --radius-sm:12px;
+      --sidebar:256px;
+      --content:1380px;
+      --font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--font)}
+    body.auth-locked .app-shell{filter:blur(4px);pointer-events:none;user-select:none}
+    .hidden{display:none!important}
+    a{color:var(--accent);text-decoration:none}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    .toast{position:fixed;right:18px;bottom:18px;z-index:9999;padding:12px 16px;border-radius:14px;background:#162033;color:#fff;transform:translateY(24px);opacity:0;transition:.25s;box-shadow:var(--shadow);max-width:480px;line-height:1.45}
+    .toast.show{transform:translateY(0);opacity:1}
+    .toast.err{background:#8b2b2b}
+    .login-overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(244,247,251,.88);backdrop-filter:blur(7px);z-index:5000}
+    .login-card{width:min(420px,100%);background:var(--panel);border:1px solid var(--border);border-radius:24px;padding:28px;box-shadow:var(--shadow)}
+    .login-title{font-size:32px;font-weight:700;line-height:1.08;margin:0 0 10px}
+    .login-sub{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:18px}
+    .field{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+    .field label{font-size:13px;color:var(--muted);font-weight:600}
+    .input,.select,.textarea{width:100%;border:1px solid var(--border);background:#fff;border-radius:14px;padding:13px 14px;color:var(--text);outline:none;transition:border-color .15s, box-shadow .15s}
+    .input:focus,.select:focus,.textarea:focus{border-color:#b6c8ea;box-shadow:0 0 0 4px rgba(31,102,209,.08)}
+    .textarea{min-height:120px;resize:vertical;line-height:1.6}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:12px 16px;font-weight:600;transition:.15s}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:hover{background:#1757b7}
+    .btn-soft{background:var(--accent-soft);color:var(--accent)}
+    .btn-soft:hover{background:#dfeaff}
+    .btn-ghost{background:#fff;border:1px solid var(--border);color:var(--text)}
+    .btn-ghost:hover{border-color:#c8d4e7;background:#fafcff}
+    .btn-danger{background:#fff0f0;color:#a43838;border:1px solid #f0d3d3}
+    .btn-sm{padding:9px 12px;border-radius:12px;font-size:13px}
+    .app-shell{display:flex;min-height:100vh}
+    .sidebar{width:var(--sidebar);background:#eef3f9;border-right:1px solid var(--border);padding:24px 20px 22px;display:flex;flex-direction:column;gap:18px;position:sticky;top:0;height:100vh}
+    .brand{display:flex;align-items:flex-start;gap:12px}
+    .brand-mark{width:42px;height:42px;border-radius:14px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;color:var(--accent);font-size:20px}
+    .brand-title{font-size:18px;font-weight:700;margin:0}
+    .brand-sub{font-size:13px;color:var(--muted);margin-top:4px}
+    .side-add{margin-top:6px}
+    .nav{display:flex;flex-direction:column;gap:6px}
+    .nav-btn{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:14px;border:1px solid transparent;background:transparent;color:#445062;font-weight:500;text-align:left}
+    .nav-btn.active{background:#fff;border-color:var(--border);color:var(--accent);box-shadow:0 4px 16px rgba(15,23,42,.04)}
+    .nav-btn:hover{background:#f7faff}
+    .nav-ico{width:22px;text-align:center;font-size:18px}
+    .sidebar-footer{margin-top:auto;padding-top:10px;border-top:1px solid rgba(147,161,178,.18);display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .user-mini{display:flex;align-items:center;gap:10px;min-width:0}
+    .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#d9e6ff,#f0f5ff);display:flex;align-items:center;justify-content:center;border:1px solid var(--border);font-size:18px}
+    .user-mini div{min-width:0}
+    .user-mini strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-mini span{font-size:12px;color:var(--muted)}
+    .main{flex:1;display:flex;flex-direction:column;min-width:0}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:18px 28px;border-bottom:1px solid rgba(226,232,240,.8);position:sticky;top:0;background:rgba(244,247,251,.94);backdrop-filter:blur(8px);z-index:40}
+    .topbar-left{display:flex;align-items:center;gap:14px;min-width:0;flex:1}
+    .search-wrap{position:relative;max-width:560px;flex:1}
+    .search-wrap input{padding-left:42px;height:44px;background:#f0f5fb}
+    .search-wrap .icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+    .topbar-right{display:flex;align-items:center;gap:12px}
+    .main-inner{padding:28px;max-width:var(--content)}
+    .hero h1{margin:0 0 10px;font-size:58px;line-height:.98;letter-spacing:-.03em}
+    .hero p{margin:0;color:var(--muted);font-size:16px;line-height:1.65;max-width:780px}
+    .split{display:grid;grid-template-columns:340px minmax(0,1fr);gap:22px;margin-top:24px}
+    .panel{background:var(--panel);border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow)}
+    .panel-soft{background:var(--panel-soft)}
+    .panel-head{padding:20px 22px 0}
+    .panel-body{padding:20px 22px}
+    .small-label{font-size:13px;font-weight:600;color:var(--muted)}
+    .section-title{font-size:16px;font-weight:700;margin:0 0 16px}
+    .quick-form .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .quick-form .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .quick-form .textarea{min-height:102px}
+    .stat-card{margin-top:18px;padding:20px 22px}
+    .stat-card .big{font-size:44px;font-weight:700;line-height:1;margin-top:10px}
+    .filters-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0 18px}
+    .chip{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:999px;border:1px solid var(--border);background:#f7fbff;color:#475467;font-size:14px;white-space:nowrap}
+    .chip.active{background:#fff;border-color:#c8d4e7;box-shadow:0 6px 18px rgba(15,23,42,.04);color:var(--accent)}
+    .chip-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+    .list-tools{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:16px}
+    .seg{display:inline-flex;background:#edf2f8;border:1px solid var(--border);border-radius:14px;padding:4px;gap:4px}
+    .seg button{border:0;background:transparent;border-radius:10px;padding:8px 10px;color:var(--muted)}
+    .seg button.active{background:#fff;color:var(--accent)}
+    .material-list{display:flex;flex-direction:column;gap:14px}
+    .material-card{padding:22px;border-radius:22px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px}
+    .material-card.compact{padding:18px}
+    .material-card h3{margin:12px 0 10px;font-size:20px;line-height:1.3}
+    .material-card p{margin:0;color:var(--muted);line-height:1.55}
+    .meta-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:.01em;background:#eef4fb;color:#55687f}
+    .badge.status{font-weight:600}
+    .badge.type{background:#eef4fb;color:#4b627c}
+    .badge.priority-high{background:#fff0f0;color:#b54545}
+    .badge.priority-medium{background:#fff5e7;color:#a56a08}
+    .badge.priority-low{background:#edf9f3;color:#12724f}
+    .badge.translation{background:#eef3ff;color:#355eb8}
+    .badge.output{background:#f1f5ff;color:#55607c}
+    .progress{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px}
+    .progress-bar{width:120px;height:8px;border-radius:999px;background:#edf2f8;overflow:hidden}
+    .progress-bar>span{display:block;height:100%;background:var(--accent);border-radius:999px}
+    .card-actions{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:16px}
+    .icon-btn{width:36px;height:36px;border-radius:12px;border:1px solid var(--border);background:#fff;color:var(--muted);display:flex;align-items:center;justify-content:center}
+    .icon-btn:hover{color:var(--accent);border-color:#c8d4e7}
+    .empty{padding:52px 24px;text-align:center;border:1px dashed var(--border-strong);border-radius:22px;color:var(--muted);background:rgba(255,255,255,.5)}
+    .board-wrap{display:grid;grid-template-columns:repeat(7,minmax(280px,1fr));gap:18px;overflow:auto;padding-bottom:10px}
+    .board-col{background:#f1f5fa;border:1px solid var(--border);border-radius:24px;padding:16px;min-height:420px}
+    .board-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .board-head h3{margin:0;font-size:22px;letter-spacing:-.02em}
+    .board-count{width:28px;height:28px;border-radius:50%;background:#e4edf9;color:#516177;font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .board-list{display:flex;flex-direction:column;gap:12px;min-height:340px}
+    .board-drop{padding:14px;border:1px dashed #cad5e4;border-radius:16px;color:var(--muted);text-align:center;background:rgba(255,255,255,.35)}
+    .board-card{padding:18px;border-radius:18px;background:#fff;border:1px solid var(--border);box-shadow:0 10px 20px rgba(15,23,42,.04)}
+    .board-card h4{margin:10px 0 8px;font-size:20px;line-height:1.28}
+    .board-card p{margin:0;color:var(--muted);line-height:1.55;font-size:14px}
+    .board-card.dragging{opacity:.55}
+    .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:24px}
+    .page-head h1,.page-head h2{margin:0;font-size:50px;line-height:1;letter-spacing:-.03em}
+    .page-head p{margin:10px 0 0;color:var(--muted);line-height:1.65;max-width:760px}
+    .count-pill{padding:10px 14px;border-radius:999px;background:#e9f1fb;color:#55687f;font-weight:700;font-size:14px;white-space:nowrap}
+    .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+    .template-card,.prompt-card,.source-card{padding:22px;border-radius:22px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .template-card h3,.prompt-card h3,.source-card h3{margin:12px 0 10px;font-size:22px;line-height:1.2}
+    .template-card p,.prompt-card p,.source-card p{margin:0;color:var(--muted);line-height:1.62}
+    .template-sections{margin-top:14px;display:flex;flex-wrap:wrap;gap:8px}
+    .template-actions,.prompt-actions,.source-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .source-form,.prompt-form{margin-bottom:22px}
+    .source-form .grid,.prompt-form .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .source-form .grid-3,.prompt-form .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .settings-layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:22px}
+    .settings-tabs{display:flex;flex-direction:column;gap:8px}
+    .settings-tab{padding:14px 16px;border-radius:14px;border:1px solid transparent;background:transparent;text-align:left;color:#475467}
+    .settings-tab.active{background:#fff;border-color:var(--border);color:var(--accent);box-shadow:var(--shadow)}
+    .settings-block{padding:22px;border-radius:22px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:18px}
+    .settings-block h3{margin:0 0 18px;font-size:26px;letter-spacing:-.02em}
+    .settings-list{display:flex;flex-wrap:wrap;gap:10px}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:16px 0;border-top:1px solid #edf2f7}
+    .toggle-row:first-child{border-top:0;padding-top:0}
+    .toggle{position:relative;width:52px;height:30px;border-radius:999px;background:#dbe5f3;border:0}
+    .toggle span{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 4px 10px rgba(15,23,42,.12)}
+    .toggle.active{background:var(--accent)}
+    .toggle.active span{left:25px}
+    .detail-shell{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:26px}
+    .detail-main{min-width:0}
+    .detail-side{position:sticky;top:88px;align-self:start;display:flex;flex-direction:column;gap:16px}
+    .detail-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}
+    .detail-top h1{margin:8px 0 12px;font-size:42px;line-height:1.04;letter-spacing:-.03em}
+    .back-link{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:14px}
+    .detail-meta{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+    .detail-task{padding:16px 18px;border-radius:18px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);color:var(--muted);line-height:1.65}
+    .detail-source{margin-top:12px}
+    .detail-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+    .detail-section{padding:20px 22px;border-radius:22px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:16px;scroll-margin-top:110px}
+    .detail-section h3{margin:0 0 8px;font-size:28px;letter-spacing:-.02em}
+    .detail-helper{color:var(--muted);font-size:14px;line-height:1.6;margin-bottom:16px}
+    .section-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:14px}
+    .section-grid .field{margin:0}
+    .textarea.big{min-height:160px}
+    .checklist{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+    .check-item{display:flex;align-items:center;gap:10px;color:#344054;padding:10px 12px;border:1px solid #edf2f7;border-radius:14px;background:#fbfdff}
+    .check-item input{accent-color:var(--accent);width:16px;height:16px}
+    .check-item.done span{text-decoration:line-through;color:var(--muted)}
+    .check-add{display:flex;gap:10px;margin-top:12px}
+    .section-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+    .summary-card{padding:18px;border-radius:20px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow)}
+    .summary-card h4{margin:0 0 14px;font-size:16px;letter-spacing:.01em;color:#4b5565}
+    .summary-nav{display:flex;flex-direction:column;gap:10px}
+    .summary-nav a{font-size:14px;color:#4b5565}
+    .summary-nav a.active{color:var(--accent);font-weight:700}
+    .pill-line{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted);margin-bottom:8px}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .code-block{background:#101a2d;color:#eef5ff;padding:16px 18px;border-radius:18px;line-height:1.6;white-space:pre-wrap;overflow:auto;border:1px solid #15233d}
+    .surface-note{padding:12px 14px;border-radius:14px;background:#f7fbff;border:1px solid #e2ebfa;color:var(--muted);font-size:14px;line-height:1.55}
+    .muted{color:var(--muted)}
+    .right{text-align:right}
+    .danger-mark{color:var(--red);font-weight:700}
+    .hr{height:1px;background:#edf2f7;margin:14px 0}
+    .inline-actions{display:flex;gap:10px;flex-wrap:wrap}
+    .card-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+    .w-100{width:100%}
+
+    @media (max-width: 1180px){
+      .split,.settings-layout,.detail-shell{grid-template-columns:1fr}
+      .detail-side{position:static}
+      .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:.2s;z-index:70}
+      body.sidebar-open .sidebar{transform:translateX(0)}
+      .main{padding-left:0}
+    }
+    @media (max-width: 900px){
+      .main-inner{padding:20px}
+      .hero h1,.page-head h1,.detail-top h1{font-size:38px}
+      .quick-form .grid,.quick-form .grid-3,.source-form .grid,.source-form .grid-3,.prompt-form .grid,.prompt-form .grid-3,.section-grid,.two-col{grid-template-columns:1fr}
+      .material-card{grid-template-columns:1fr}
+      .card-actions{align-items:flex-start}
+      .board-wrap{grid-template-columns:repeat(7,320px)}
     }
   </style>
 </head>
 <body class="auth-locked">
-  <div class="toast" id="toast"></div>
+  <div id="toast" class="toast"></div>
 
-  <div class="login-overlay" id="login-overlay">
+  <div id="loginOverlay" class="login-overlay">
     <div class="login-card">
-      <div class="login-title">Вход в контент-монитор</div>
-      <div class="login-sub">
-        Вход по email и паролю. Разрешён только email:
-        <b id="allowed-email-label"></b>
+      <div class="small-label">Приватная контент-система</div>
+      <h1 class="login-title">Вход в админку</h1>
+      <div class="login-sub">Система для сбора материалов, ресерча и подготовки контента. Вход по email и паролю через Supabase.</div>
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" class="input" type="email" placeholder="you@example.com" />
       </div>
-      <div class="login-row">
-        <input class="login-input" id="login-email" type="email" placeholder="you@example.com" />
+      <div class="field">
+        <label for="loginPassword">Пароль</label>
+        <input id="loginPassword" class="input" type="password" placeholder="Пароль" />
       </div>
-      <div class="login-row">
-        <input class="login-input" id="login-password" type="password" placeholder="Пароль" />
-        <button class="btn-add" id="btn-login" onclick="login()">Войти</button>
+      <div class="inline-actions">
+        <button class="btn btn-primary w-100" onclick="App.login()">Войти</button>
       </div>
     </div>
   </div>
 
-  <header>
-    <div class="logo">К.<span>М</span> · Контент-монитор</div>
-
-    <div class="header-right">
-      <div class="hstats">
-        <div class="hstat">
-          <span class="sdot loading" id="sdot"></span>
-          <span id="slabel">проверка сессии...</span>
-        </div>
-        <div class="hstat">Ссылок: <b id="h-total">—</b></div>
-        <div class="hstat">В работе: <b id="h-wip">—</b></div>
-        <div class="hstat">Готово: <b id="h-done">—</b></div>
-      </div>
-
-      <div class="auth-actions">
-        <div class="user-email" id="user-email"></div>
-        <button class="btn-logout hidden" id="btn-logout" onclick="logoutNow()">Выйти</button>
-      </div>
-    </div>
-  </header>
-
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('links')">🔗 Банк ссылок</button>
-    <button class="tab" onclick="switchTab('sources')">📡 Источники</button>
-    <button class="tab" onclick="switchTab('stats')">📊 Статистика</button>
-  </div>
-
-  <div class="main">
-    <div id="error-banner" class="error-banner hidden"></div>
-
-    <div id="tab-links" class="section active">
-      <div class="add-form">
-        <div class="form-row">
-          <input class="f-url" id="l-url" type="url" placeholder="https://... ссылка" />
-          <input class="f-title" id="l-title" placeholder="Название / о чём" />
-          <select class="f-cat" id="l-cat">
-            <option value="ai">🔵 AI / Нейросети</option>
-            <option value="marketing">🟢 Маркетинг</option>
-            <option value="both">🟡 Маркетинг + AI</option>
-            <option value="news">🟣 Новость</option>
-            <option value="case">⚪ Кейс / Разбор</option>
-          </select>
-          <select class="f-prio" id="l-prio">
-            <option value="high">🔴 Высокий</option>
-            <option value="med" selected>🟡 Средний</option>
-            <option value="low">🟢 Низкий</option>
-          </select>
-        </div>
-
-        <div class="form-row">
-          <input class="f-idea" id="l-idea" placeholder="Моя идея — как адаптировать для контента" />
-          <select class="f-src" id="l-source">
-            <option value="">Источник...</option>
-          </select>
-          <select class="f-fmt" id="l-fmt">
-            <option value="">Формат...</option>
-            <option value="article">Статья VC.ru</option>
-            <option value="dzen">Статья Дзен</option>
-            <option value="tg">TG-пост</option>
-            <option value="yt">YouTube</option>
-            <option value="short">Шортс / Рилс</option>
-            <option value="carousel">Карусель</option>
-            <option value="vk">VK-пост</option>
-            <option value="digest">Дайджест</option>
-          </select>
-          <button class="btn-add" id="btn-add-link" onclick="addLink()">+ Добавить</button>
-          <button class="btn-ai" id="btn-ai" onclick="analyzeContent()">🤖 AI-анализ</button>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">✦</div>
+        <div>
+          <div class="brand-title">Контент-система</div>
+          <div class="brand-sub">Research & Production</div>
         </div>
       </div>
 
-      <div class="filters">
-        <button class="fil-btn active" onclick="setF('all',this)">Все</button>
-        <button class="fil-btn" onclick="setF('ai',this)">🔵 AI</button>
-        <button class="fil-btn" onclick="setF('marketing',this)">🟢 Маркетинг</button>
-        <button class="fil-btn" onclick="setF('both',this)">🟡 Оба</button>
-        <button class="fil-btn" onclick="setF('news',this)">🟣 Новость</button>
-        <button class="fil-btn" onclick="setF('case',this)">⚪ Кейс</button>
-        <button class="fil-btn" onclick="setF('st:new',this)">🆕 Новые</button>
-        <button class="fil-btn" onclick="setF('st:wip',this)">⚙️ В работе</button>
-        <button class="fil-btn" onclick="setF('st:done',this)">✅ Готово</button>
-        <button class="fil-btn" onclick="setF('st:skip',this)">⏸ Отложено</button>
-        <button class="fil-btn" onclick="setF('prio:high',this)">🔴 Срочные</button>
-        <input class="search-box" id="search" placeholder="🔍 Поиск..." oninput="renderLinks()" />
+      <div class="side-add">
+        <button class="btn btn-primary w-100" onclick="App.goToQuickAdd()">＋ Добавить материал</button>
       </div>
 
-      <div id="items-list" class="items">
-        <div class="empty">Войдите, чтобы увидеть данные.</div>
-      </div>
-    </div>
+      <nav class="nav">
+        <button class="nav-btn" data-view="library" onclick="App.switchView('library')"><span class="nav-ico">▣</span>Библиотека</button>
+        <button class="nav-btn" data-view="board" onclick="App.switchView('board')"><span class="nav-ico">☰</span>Доска</button>
+        <button class="nav-btn" data-view="templates" onclick="App.switchView('templates')"><span class="nav-ico">◫</span>Шаблоны</button>
+        <button class="nav-btn" data-view="sources" onclick="App.switchView('sources')"><span class="nav-ico">◌</span>Источники</button>
+        <button class="nav-btn" data-view="prompts" onclick="App.switchView('prompts')"><span class="nav-ico">⌘</span>Промпты</button>
+        <button class="nav-btn" data-view="settings" onclick="App.switchView('settings')"><span class="nav-ico">⚙</span>Настройки</button>
+      </nav>
 
-    <div id="tab-sources" class="section">
-      <div class="add-form">
-        <div class="form-row">
-          <input style="flex:2;min-width:160px" id="s-name" placeholder="Название источника" />
-          <input style="flex:3;min-width:200px" id="s-url" type="url" placeholder="https://..." />
-          <select class="f-cat" id="s-cat">
-            <option value="ai">🔵 AI / Нейросети</option>
-            <option value="marketing">🟢 Маркетинг</option>
-            <option value="both">🟡 Оба</option>
-            <option value="news">🟣 Новости</option>
-          </select>
-          <select style="width:135px" id="s-type">
-            <option value="tg">Telegram</option>
-            <option value="site">Сайт / Блог</option>
-            <option value="yt">YouTube</option>
-            <option value="email">Email-рассылка</option>
-            <option value="twitter">Twitter/X</option>
-            <option value="author">Автор VC/Дзен</option>
-          </select>
-          <input style="flex:3;min-width:180px" id="s-desc" placeholder="Почему полезен" />
-          <button class="btn-add" id="btn-add-src" onclick="addSource()">+ Добавить</button>
+      <div class="sidebar-footer">
+        <div class="user-mini">
+          <div class="avatar">👤</div>
+          <div>
+            <strong id="sidebarUserEmail">—</strong>
+            <span id="sidebarUserStatus">Оффлайн</span>
+          </div>
         </div>
+        <button class="icon-btn" title="Выйти" onclick="App.logout()">↗</button>
       </div>
+    </aside>
 
-      <div class="filters" id="src-filters">
-        <button class="fil-btn active" onclick="setSF('all',this)">Все</button>
-        <button class="fil-btn" onclick="setSF('ai',this)">🔵 AI</button>
-        <button class="fil-btn" onclick="setSF('marketing',this)">🟢 Маркетинг</button>
-        <button class="fil-btn" onclick="setSF('both',this)">🟡 Оба</button>
-        <button class="fil-btn" onclick="setSF('news',this)">🟣 Новости</button>
-        <button class="fil-btn" onclick="setSF('tg',this)">TG</button>
-        <button class="fil-btn" onclick="setSF('yt',this)">YouTube</button>
-        <button class="fil-btn" onclick="setSF('site',this)">Сайт</button>
-        <button class="fil-btn" onclick="setSF('author',this)">Авторы</button>
-      </div>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="search-wrap">
+            <span class="icon">⌕</span>
+            <input id="globalSearch" class="input" type="search" placeholder="Поиск по библиотеке..." oninput="App.setSearch(this.value)" />
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button class="btn btn-ghost btn-sm" onclick="App.loadData()">Обновить</button>
+          <div class="count-pill" id="topbarSummary">0 материалов</div>
+        </div>
+      </header>
 
-      <div id="src-grid" class="src-grid">
-        <div class="empty">Войдите, чтобы увидеть данные.</div>
-      </div>
-    </div>
-
-    <div id="tab-stats" class="section">
-      <div id="stats-content">
-        <div class="empty">Войдите, чтобы увидеть статистику.</div>
-      </div>
-    </div>
+      <div class="main-inner" id="viewRoot"></div>
+    </main>
   </div>
 
   <script>
-    const SB_URL = "https://lrjcxtprwpgrdemwyptv.supabase.co";
-    const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxyamN4dHByd3BncmRlbXd5cHR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMzE3MTUsImV4cCI6MjA5MTkwNzcxNX0.gA67TpNrfrLxF48oSReVZt5oUSkc2-Jbl1K8CinKxsQ";
+    const SB_URL = "REPLACE_WITH_SUPABASE_URL";
+    const SB_KEY = "REPLACE_WITH_SUPABASE_ANON_KEY";
     const ALLOWED_EMAIL = "kamoroz175@gmail.com";
 
     const supabaseClient = supabase.createClient(SB_URL, SB_KEY, {
-      auth: {
-        autoRefreshToken: true,
-        persistSession: true
-      }
+      auth: { autoRefreshToken: true, persistSession: true }
     });
 
-    const db = supabaseClient;
+    const MATERIAL_TYPES = [
+      { id: "long_video", label: "Длинное видео" },
+      { id: "short_video", label: "Короткое видео" },
+      { id: "article", label: "Статья" },
+      { id: "post", label: "Пост" },
+      { id: "carousel", label: "Карусель" },
+      { id: "case", label: "Кейс" },
+      { id: "news", label: "Новость" },
+      { id: "raw", label: "Сырой материал" }
+    ];
+    const STATUSES = [
+      { id: "inbox", label: "Входящие" },
+      { id: "review", label: "Разобрать" },
+      { id: "research", label: "Ресерч" },
+      { id: "script", label: "Сценарий" },
+      { id: "production", label: "Продакшн" },
+      { id: "ready", label: "Готово" },
+      { id: "published", label: "Опубликовано" },
+      { id: "archive", label: "Архив" }
+    ];
+    const PRIORITIES = [
+      { id: "low", label: "Низкий" },
+      { id: "medium", label: "Средний" },
+      { id: "high", label: "Высокий" }
+    ];
+    const OUTPUT_FORMATS = [
+      { id: "tg_post", label: "TG-пост" },
+      { id: "carousel", label: "Карусель" },
+      { id: "youtube_long", label: "YouTube" },
+      { id: "shorts", label: "Shorts / Reels" },
+      { id: "article", label: "Статья" },
+      { id: "digest", label: "Дайджест" },
+      { id: "notes", label: "Заметки" }
+    ];
+    const SOURCE_TYPES = [
+      { id: "youtube", label: "YouTube" },
+      { id: "telegram", label: "Telegram" },
+      { id: "website", label: "Сайт" },
+      { id: "newsletter", label: "Рассылка" },
+      { id: "twitter", label: "Twitter / X" },
+      { id: "author", label: "Автор" }
+    ];
+    const PROMPT_CATEGORIES = [
+      { id: "translation", label: "Перевод" },
+      { id: "summary", label: "Выжимка" },
+      { id: "research", label: "Ресерч" },
+      { id: "script", label: "Сценарий" },
+      { id: "carousel", label: "Карусель" },
+      { id: "post", label: "Пост" },
+      { id: "shorts", label: "Shorts / Reels" }
+    ];
 
-    const CAT = {
-      ai: "AI / Нейросети",
-      marketing: "Маркетинг",
-      both: "Маркетинг + AI",
-      news: "Новость",
-      case: "Кейс / Разбор"
+    const DEFAULT_PROMPTS = [
+      {
+        title: "Глубокое саммари статьи",
+        category: "summary",
+        description: "Собрать главные идеи, аргументы и выводы по статье.",
+        body: "Прочитай следующий текст и выдели 3 главные идеи, 5 ключевых аргументов и 3 практических вывода. Оформи ответ на русском, без воды, с акцентом на применение в маркетинге."
+      },
+      {
+        title: "Адаптивный перевод эссе",
+        category: "translation",
+        description: "Перевод с сохранением смысла, но с нормальным русским языком.",
+        body: "Переведи этот текст на русский язык, сохраняя смысл и авторский тон. Упрощай тяжелые обороты, но не теряй содержание. Если есть термины, предложи понятный русский вариант и оригинал в скобках."
+      },
+      {
+        title: "Сбор конкурентов",
+        category: "research",
+        description: "Быстро собрать аналогов и критерии сравнения.",
+        body: "Составь список из 10 главных конкурентов в нише [тема]. Для каждого укажи позиционирование, ключевой продукт, сильную сторону, слабую сторону и чему можно у них научиться."
+      },
+      {
+        title: "Хуки для короткого ролика",
+        category: "shorts",
+        description: "Найти сильные заходы для короткого видео.",
+        body: "Сгенерируй 10 сильных хуков для короткого ролика на тему [тема]. Формат: 3 провокационных, 3 аналитических, 2 контрастных, 2 простых человеческих."
+      },
+      {
+        title: "Структура карусели",
+        category: "carousel",
+        description: "Разбить тему на слайды с хорошим ритмом.",
+        body: "Разбей тему [тема] на 7 слайдов для карусели. Слайд 1 — сильный заголовок, 2-5 — суть с примерами, 6 — ошибки / чек-лист, 7 — CTA. Язык: лаконичный, деловой, без клише."
+      }
+    ];
+
+    function makeSection(key, title, helper, subfields = [], checklist = [], bodyLabel = "Заметки") {
+      return { key, title, helper, subfields, checklist, bodyLabel };
+    }
+
+    const SYSTEM_TEMPLATES = {
+      long_video: {
+        label: "Длинное видео",
+        description: "Полный сценарий обработки длинного ролика: транскрипт, таймкоды, тезисы, ресерч, сценарии для длинного и короткого формата.",
+        recommended: ["youtube_long", "shorts", "carousel"],
+        sections: [
+          makeSection("overview", "Обзор материала", "Здесь фиксируется контекст видео и зачем вы его разбираете.", [
+            { key: "core_idea", label: "Главная идея видео", type: "textarea" },
+            { key: "audience", label: "Для кого это полезно", type: "text" },
+            { key: "why_now", label: "Почему это важно сейчас", type: "text" }
+          ], ["Понять тему ролика", "Определить пользу для себя"], "Первое впечатление и общие заметки"),
+          makeSection("translation", "Нужен ли перевод", "Зафиксируйте, нужен ли перевод и какие термины требуют адаптации.", [
+            { key: "translation_mode", label: "Формат перевода", type: "text" },
+            { key: "terms", label: "Сложные термины", type: "textarea" }
+          ], ["Проверить язык оригинала", "Определить, нужен ли перевод"], "Заметки по переводу"),
+          makeSection("transcript", "Транскрипт", "Черновая или чистая версия транскрипта.", [
+            { key: "source_method", label: "Как получен транскрипт", type: "text" }
+          ], ["Добавлен транскрипт", "Очищен от мусора"], "Вставьте транскрипт"),
+          makeSection("timestamps", "Таймкоды", "Ключевые временные метки и о чём там говорится.", [
+            { key: "main_moments", label: "Ключевые таймкоды", type: "textarea" }
+          ], ["Выделены важные фрагменты", "Отмечены повторы"], "Замечания по таймкодам"),
+          makeSection("theses", "Ключевые тезисы", "Главные мысли автора по сути.", [
+            { key: "top_ideas", label: "3–5 главных идей", type: "textarea" },
+            { key: "what_new", label: "Что нового для меня", type: "textarea" }
+          ], ["Тезисы собраны", "Выделена главная мысль"], "Дополнительные тезисы"),
+          makeSection("tools", "Инструменты / сервисы", "Что упоминается из инструментов, подходов и сервисов.", [
+            { key: "tools_list", label: "Список инструментов", type: "textarea" },
+            { key: "usage", label: "Как они применяются", type: "textarea" }
+          ], ["Инструменты выписаны", "Понятны сценарии применения"], "Примечания по инструментам"),
+          makeSection("applicable", "Что применимо к моей работе", "Отдельно выпишите то, что можно использовать в вашем процессе.", [
+            { key: "use_now", label: "Что можно внедрить сразу", type: "textarea" },
+            { key: "test_later", label: "Что стоит протестировать позже", type: "textarea" }
+          ], ["Выделены практические выводы"], "Как это связано с вашим контекстом"),
+          makeSection("research", "Ресерч по теме", "Что нужно дополнительно проверить, чем дополнить и где добрать кейсы.", [
+            { key: "to_check", label: "Что проверить", type: "textarea" },
+            { key: "extra_sources", label: "Дополнительные источники", type: "textarea" },
+            { key: "examples", label: "Нужные примеры / кейсы", type: "textarea" }
+          ], ["Список проверок составлен", "Найдены дополнительные источники"], "Дополнительные заметки по ресерчу"),
+          makeSection("hooks", "Хуки и углы подачи", "Идеи заходов для длинного ролика и нарезок.", [
+            { key: "provocative", label: "Провокационные хуки", type: "textarea" },
+            { key: "analytic", label: "Аналитические хуки", type: "textarea" }
+          ], ["Есть 3–5 сильных заходов"], "Финальный выбранный угол"),
+          makeSection("long_script", "Структура большого ролика", "Каркас полноценного сценария или разбора.", [
+            { key: "structure", label: "Блоки ролика", type: "textarea" },
+            { key: "key_demo", label: "Что показать на экране", type: "textarea" }
+          ], ["Структура собрана"], "Черновик сценария длинного ролика"),
+          makeSection("short_plan", "Структура Shorts / Reels", "Нарезки и короткие углы подачи.", [
+            { key: "short_ideas", label: "Идеи для коротких роликов", type: "textarea" },
+            { key: "first_seconds", label: "Первые 3 секунды", type: "textarea" }
+          ], ["Есть идеи для нарезок"], "Дополнительные пометки"),
+          makeSection("carousel_plan", "План карусели", "Если из ролика можно сделать карусель — соберите структуру.", [
+            { key: "slides", label: "Слайды / логика", type: "textarea" }
+          ], ["Структура карусели собрана"], "Текст слайдов / мысли"),
+          makeSection("final_output", "Финальный сценарий", "Итоговый собранный черновик под выбранный выход.", [], ["Черновик собран"], "Финальный сценарий"),
+          makeSection("publish", "CTA / публикация", "Куда публикуем, какой CTA и что нужно добавить.", [
+            { key: "cta", label: "CTA", type: "text" },
+            { key: "channel", label: "Канал публикации", type: "text" }
+          ], ["CTA определён", "Канал публикации выбран"], "Заметки по публикации"),
+          makeSection("prompts", "Рабочие промпты", "Сохраните полезные промпты для дальнейшей доработки.", [], ["Добавлены промпты"], "Промпты / заготовки")
+        ]
+      },
+      short_video: {
+        label: "Короткое видео",
+        description: "Сценарий короткого ролика: идея, хук, структура, визуальные сцены и подпись.",
+        recommended: ["shorts", "tg_post"],
+        sections: [
+          makeSection("overview", "Обзор", "Что это за материал и зачем он нужен.", [
+            { key: "main_point", label: "Главная идея", type: "textarea" },
+            { key: "for_whom", label: "Для кого", type: "text" }
+          ], ["Тема понятна"], "Общие заметки"),
+          makeSection("one_line", "Тезис в одно предложение", "Соберите центральную мысль ролика.", [
+            { key: "one_line", label: "Тезис", type: "textarea" }
+          ], ["Есть короткий тезис"], "Дополнения"),
+          makeSection("hooks", "Хуки", "Варианты первых секунд и заходов.", [
+            { key: "hooks", label: "Список хуков", type: "textarea" }
+          ], ["Есть 5+ вариантов"], "Какой хук выбрать"),
+          makeSection("script", "Сценарий короткого ролика", "Каркас ролика по блокам.", [
+            { key: "structure", label: "Структура по строкам", type: "textarea" }
+          ], ["Структура собрана"], "Черновик текста"),
+          makeSection("visuals", "Визуальные сцены", "Что должно происходить на экране.", [
+            { key: "shots", label: "Сцены / кадры", type: "textarea" }
+          ], ["Сцены определены"], "Дополнительные примечания"),
+          makeSection("description", "Подпись / описание", "Текст под ролик.", [
+            { key: "caption", label: "Подпись", type: "textarea" },
+            { key: "hashtags", label: "Хэштеги / доп. отметки", type: "text" }
+          ], ["Подпись подготовлена"], "Альтернативные варианты"),
+          makeSection("publish", "CTA", "Какой призыв к действию использовать.", [
+            { key: "cta", label: "CTA", type: "text" }
+          ], ["CTA выбран"], "Заметки"),
+          makeSection("prompts", "Промпты", "Полезные заготовки под Shorts / Reels.", [], ["Промпты сохранены"], "Промпты")
+        ]
+      },
+      article: {
+        label: "Статья",
+        description: "Разбор статьи: суть, перевод, спорные места, ресерч, идеи и финальный черновик.",
+        recommended: ["tg_post", "carousel", "article"],
+        sections: [
+          makeSection("overview", "Обзор материала", "Зафиксируйте контекст, задачу и вашу рамку разбора.", [
+            { key: "main_thesis", label: "Главная мысль статьи", type: "textarea" },
+            { key: "for_whom", label: "Для кого полезно", type: "text" },
+            { key: "why_important", label: "Почему это важно", type: "text" }
+          ], ["Определена целевая аудитория статьи", "Проверить актуальность данных"], "Добавьте общие заметки или первое впечатление"),
+          makeSection("summary", "Краткая суть", "Короткий пересказ и главный вывод.", [
+            { key: "summary_points", label: "Summary / 5 bullet points", type: "textarea" },
+            { key: "key_takeaway", label: "Ключевой вывод", type: "textarea" },
+            { key: "whats_new", label: "Что нового", type: "textarea" }
+          ], ["Собран краткий пересказ"], "Дополнительные детали"),
+          makeSection("translation", "Перевод / язык", "Как адаптировать формулировки и термины.", [
+            { key: "difficult_terms", label: "Сложные термины", type: "textarea" },
+            { key: "russian_wording", label: "Русские формулировки", type: "textarea" },
+            { key: "adaptations", label: "Адаптация смысла", type: "textarea" }
+          ], ["Поняты спорные термины", "Решено, нужен ли перевод"], "Общие заметки по языку"),
+          makeSection("source_text", "Исходный текст", "Оригинал, перевод и заметки по статье.", [
+            { key: "original", label: "Оригинал", type: "textarea" },
+            { key: "translation", label: "Перевод", type: "textarea" },
+            { key: "quotes", label: "Ключевые цитаты", type: "textarea" },
+            { key: "notes", label: "Заметки по тексту", type: "textarea" }
+          ], ["Оригинал добавлен", "Перевод добавлен"], "Дополнительные заметки"),
+          makeSection("ideas", "Ключевые идеи", "Главные идеи, которые стоит вынести из статьи.", [
+            { key: "idea_1", label: "Главная идея 1", type: "textarea" },
+            { key: "idea_2", label: "Главная идея 2", type: "textarea" },
+            { key: "use_cases", label: "Где это можно использовать", type: "textarea" }
+          ], ["Выделены 3–5 идей"], "Дополнительные идеи"),
+          makeSection("validate", "Что спорно / что проверить", "Сомнительные места, цифры и утверждения для проверки.", [
+            { key: "claims", label: "Спорные тезисы", type: "textarea" },
+            { key: "facts", label: "Что подтвердить", type: "textarea" },
+            { key: "assumptions", label: "Что перепроверить дополнительно", type: "textarea" }
+          ], ["Спорные места собраны"], "Другие замечания"),
+          makeSection("research", "Ресерч по теме", "Какие дополнительные источники и кейсы нужно добрать.", [
+            { key: "what_to_study", label: "Что ещё изучить", type: "textarea" },
+            { key: "sources", label: "Дополнительные источники", type: "textarea" },
+            { key: "cases", label: "Кейсы / цифры", type: "textarea" }
+          ], ["Составлен список доп. источников"], "Заметки по ресерчу"),
+          makeSection("applicable", "Что применимо к моей работе", "Что именно можно внедрить или использовать в контенте.", [
+            { key: "practical", label: "Практические выводы", type: "textarea" },
+            { key: "angles", label: "Какие форматы под это подходят", type: "textarea" }
+          ], ["Выделены практические выводы"], "Связь с вашим процессом"),
+          makeSection("hooks", "Хуки и углы подачи", "Заходы для поста, карусели или видео.", [
+            { key: "provocative", label: "Провокационный хук", type: "textarea" },
+            { key: "analytic", label: "Аналитический хук", type: "textarea" },
+            { key: "format", label: "Формат выхода", type: "text" }
+          ], ["Есть сильные варианты подачи"], "Финальный выбранный угол"),
+          makeSection("structure", "Структура будущего материала", "Как вы разложите будущий контент.", [
+            { key: "logic", label: "Основная логика / порядок тезисов", type: "textarea" },
+            { key: "plan", label: "План поста / карусели / видео", type: "textarea" }
+          ], ["Структура собрана"], "Дополнительные пометки"),
+          makeSection("draft", "Финальный черновик", "Сюда собирается итоговый черновик материала.", [], ["Черновик собран"], "Начните собирать финальный текст"),
+          makeSection("publish", "CTA / публикация", "Призыв к действию, канал и служебные пометки.", [
+            { key: "cta", label: "CTA / призыв", type: "text" },
+            { key: "channel", label: "Канал публикации", type: "text" },
+            { key: "timing", label: "Когда публиковать", type: "text" }
+          ], ["Определён CTA", "Понятен канал публикации"], "Заметки по публикации"),
+          makeSection("prompts", "Рабочие промпты", "Набор промптов под статью, карусель, пост и ресерч.", [
+            { key: "insights_prompt", label: "Промпт на выжимку инсайтов", type: "textarea" },
+            { key: "carousel_prompt", label: "Промпт для карусели", type: "textarea" },
+            { key: "post_prompt", label: "Промпт для поста", type: "textarea" }
+          ], ["Промпты сохранены"], "Дополнительные заготовки"),
+        ]
+      },
+      post: {
+        label: "Пост",
+        description: "Короткая система сборки поста: тезис, подача, черновик, CTA.",
+        recommended: ["tg_post", "article"],
+        sections: [
+          makeSection("overview", "Обзор", "Что это за пост и зачем он нужен.", [
+            { key: "main_idea", label: "Главная идея", type: "textarea" },
+            { key: "audience", label: "Для кого", type: "text" }
+          ], ["Тема понятна"], "Общие заметки"),
+          makeSection("angle", "Угол подачи", "Какая перспектива у поста.", [
+            { key: "angle", label: "Угол подачи", type: "textarea" }
+          ], ["Угол выбран"], "Дополнения"),
+          makeSection("hooks", "Хуки", "Варианты захода в пост.", [
+            { key: "hooks", label: "Заходы", type: "textarea" }
+          ], ["Есть несколько заходов"], "Выбранный хук"),
+          makeSection("structure", "Структура", "Логика поста.", [
+            { key: "structure", label: "Блоки поста", type: "textarea" }
+          ], ["Структура собрана"], "Примечания"),
+          makeSection("draft", "Черновик поста", "Основной текст.", [], ["Черновик написан"], "Текст поста"),
+          makeSection("short_version", "Короткая версия", "Укороченный вариант для других каналов.", [
+            { key: "short_text", label: "Короткая версия", type: "textarea" }
+          ], ["Короткая версия собрана"], "Дополнения"),
+          makeSection("publish", "CTA / публикация", "Финальная упаковка поста.", [
+            { key: "cta", label: "CTA", type: "text" },
+            { key: "channel", label: "Канал", type: "text" }
+          ], ["Понятно, куда публиковать"], "Заметки"),
+          makeSection("prompts", "Промпты", "Рабочие заготовки под пост.", [], ["Промпты сохранены"], "Промпты")
+        ]
+      },
+      carousel: {
+        label: "Карусель",
+        description: "Пошаговая подготовка карусели: идея, аудитория, структура слайдов, тексты и CTA.",
+        recommended: ["carousel", "tg_post"],
+        sections: [
+          makeSection("overview", "Обзор", "Рамка будущей карусели.", [
+            { key: "main_idea", label: "Главная идея", type: "textarea" },
+            { key: "audience", label: "Для кого", type: "text" }
+          ], ["Главная идея определена"], "Общие заметки"),
+          makeSection("insight", "Основной инсайт", "Что человек должен унести из карусели.", [
+            { key: "insight", label: "Основной инсайт", type: "textarea" }
+          ], ["Инсайт сформулирован"], "Дополнительные мысли"),
+          makeSection("slides", "Структура по слайдам", "Соберите логику каждого слайда.", [
+            { key: "slides", label: "Слайды 1–7", type: "textarea" }
+          ], ["Слайды распланированы"], "Пометки"),
+          makeSection("copy", "Текст каждого слайда", "Черновой или чистовой текст.", [
+            { key: "slide_copy", label: "Текст слайдов", type: "textarea" }
+          ], ["Текст слайдов подготовлен"], "Дополнения"),
+          makeSection("design", "Что нужно для дизайна", "Референсы, графика, подписи.", [
+            { key: "references", label: "Референсы", type: "textarea" },
+            { key: "visuals", label: "Что показать визуально", type: "textarea" }
+          ], ["Есть список референсов"], "Заметки"),
+          makeSection("caption", "Подпись к карусели", "Описание / пост-сопровождение.", [
+            { key: "caption", label: "Подпись", type: "textarea" }
+          ], ["Подпись собрана"], "Дополнительные варианты"),
+          makeSection("publish", "CTA", "Финальный призыв.", [
+            { key: "cta", label: "CTA", type: "text" }
+          ], ["CTA определён"], "Заметки"),
+          makeSection("prompts", "Промпт для Claude / дизайна", "Здесь сохраняется промпт для генерации структуры и текста.", [
+            { key: "prompt", label: "Основной промпт", type: "textarea" }
+          ], ["Промпт сохранён"], "Дополнительные промпты")
+        ]
+      },
+      case: {
+        label: "Кейс",
+        description: "Карточка под разбор кейса: контекст, гипотезы, результаты и выводы.",
+        recommended: ["article", "tg_post", "carousel"],
+        sections: [
+          makeSection("context", "Контекст", "Откуда кейс, в каких условиях, что за задача.", [
+            { key: "background", label: "Контекст", type: "textarea" },
+            { key: "goal", label: "Цель", type: "textarea" }
+          ], ["Контекст понятен"], "Дополнительные заметки"),
+          makeSection("problem", "Проблема", "Что решали и почему это важно.", [
+            { key: "problem", label: "Проблема", type: "textarea" }
+          ], ["Проблема сформулирована"], "Заметки"),
+          makeSection("actions", "Что сделали", "Подходы, гипотезы и изменения.", [
+            { key: "actions", label: "Что сделали", type: "textarea" },
+            { key: "hypotheses", label: "Гипотезы", type: "textarea" }
+          ], ["Действия выписаны"], "Дополнения"),
+          makeSection("metrics", "Цифры / метрики", "Что можно показать и доказать.", [
+            { key: "metrics", label: "Метрики", type: "textarea" }
+          ], ["Метрики собраны"], "Дополнения"),
+          makeSection("conclusions", "Выводы", "Что сработало, что не сработало и что взять себе.", [
+            { key: "worked", label: "Что сработало", type: "textarea" },
+            { key: "failed", label: "Что не сработало", type: "textarea" },
+            { key: "for_me", label: "Что взять себе", type: "textarea" }
+          ], ["Выводы собраны"], "Другие замечания"),
+          makeSection("angle", "Угол подачи", "Как подать кейс в контенте.", [
+            { key: "angle", label: "Угол подачи", type: "textarea" }
+          ], ["Угол подачи выбран"], "Дополнения"),
+          makeSection("draft", "Черновик", "Соберите итоговый текст кейса.", [], ["Черновик готов"], "Текст кейса")
+        ]
+      },
+      news: {
+        label: "Новость",
+        description: "Быстрая карточка для новостного материала: что произошло, почему важно и как подать.",
+        recommended: ["tg_post", "digest"],
+        sections: [
+          makeSection("what", "Что произошло", "Фактическая суть новости.", [
+            { key: "facts", label: "Факты", type: "textarea" }
+          ], ["Факт новости понятен"], "Заметки"),
+          makeSection("why", "Почему это важно", "Кого касается и почему имеет значение.", [
+            { key: "impact", label: "Почему важно", type: "textarea" },
+            { key: "audience", label: "Кого касается", type: "textarea" }
+          ], ["Последствия описаны"], "Дополнения"),
+          makeSection("change", "Что это меняет на практике", "Что теперь делать или учитывать.", [
+            { key: "practical", label: "Практический вывод", type: "textarea" }
+          ], ["Практический вывод собран"], "Заметки"),
+          makeSection("research", "Быстрый ресерч", "Что дополнительно проверить.", [
+            { key: "to_check", label: "Что проверить", type: "textarea" }
+          ], ["Проверки выписаны"], "Дополнения"),
+          makeSection("angle", "Угол подачи", "Как подать новость в вашем стиле.", [
+            { key: "angle", label: "Угол подачи", type: "textarea" }
+          ], ["Угол определён"], "Заметки"),
+          makeSection("draft", "TG-пост / короткий пост", "Черновой текст.", [], ["Черновик собран"], "Текст"),
+          makeSection("publish", "CTA", "Завершение и публикация.", [
+            { key: "cta", label: "CTA", type: "text" }
+          ], ["CTA выбран"], "Примечания")
+        ]
+      },
+      raw: {
+        label: "Сырой материал",
+        description: "Быстрый контейнер для сырой находки, чтобы ничего не потерять.",
+        recommended: ["notes"],
+        sections: [
+          makeSection("overview", "Обзор", "Что это за материал и почему вы его сохранили.", [
+            { key: "what_is_it", label: "Что это", type: "textarea" },
+            { key: "why_save", label: "Почему сохранить", type: "textarea" }
+          ], ["Материал описан"], "Общие заметки"),
+          makeSection("ideas", "Что с ним можно сделать", "Возможные форматы и направления.", [
+            { key: "possible_outputs", label: "Возможные выходы", type: "textarea" }
+          ], ["Есть направления работы"], "Дополнительные мысли"),
+          makeSection("notes", "Черновые заметки", "Любые заметки, пока материал сырой.", [], ["Есть рабочие заметки"], "Заметки")
+        ]
+      }
     };
 
-    const FMT = {
-      article: "Статья VC.ru",
-      dzen: "Статья Дзен",
-      tg: "TG-пост",
-      yt: "YouTube",
-      short: "Шортс",
-      carousel: "Карусель",
-      vk: "VK",
-      digest: "Дайджест"
+    const state = {
+      user: null,
+      initialized: false,
+      currentView: 'library',
+      previousView: 'library',
+      currentMaterialId: null,
+      materials: [],
+      sources: [],
+      prompts: [],
+      sectionsByMaterial: {},
+      search: '',
+      filters: { type: 'all', status: 'all', translation: 'all', priority: 'all' },
+      draggedId: null,
+      settings: loadUiSettings(),
+      dirtySections: new Set(),
+      dirtyMaterial: false,
+      promptsFilter: 'all',
+      sourceFilter: 'all',
+      compactList: false
     };
 
-    const ICONS = {
-      tg: "📱",
-      site: "🌐",
-      yt: "🎬",
-      email: "📧",
-      twitter: "🐦",
-      author: "✍️"
-    };
-
-    let currentUser = null;
-let links = [];
-let sources = [];
-let lf = "all";
-let sf = "all";
-let isInitializing = false;
-
-    function showError(text) {
-      const el = document.getElementById("error-banner");
-      el.textContent = text;
-      el.classList.remove("hidden");
-    }
-
-    function clearError() {
-      const el = document.getElementById("error-banner");
-      el.textContent = "";
-      el.classList.add("hidden");
-    }
-
-    function setAllowedEmailLabel() {
-      document.getElementById("allowed-email-label").textContent = ALLOWED_EMAIL;
-    }
-
-    function setUserUi() {
-      const emailEl = document.getElementById("user-email");
-      const logoutBtn = document.getElementById("btn-logout");
-
-      emailEl.textContent = currentUser?.email || "";
-      logoutBtn.classList.toggle("hidden", !currentUser);
-    }
-
-    function showLogin() {
-      document.body.classList.add("auth-locked");
-      document.getElementById("login-overlay").classList.remove("hidden");
-      document.getElementById("login-email").value = currentUser?.email || ALLOWED_EMAIL || "";
-      document.getElementById("login-password").value = "";
-    }
-
-    function hideLogin() {
-      document.body.classList.remove("auth-locked");
-      document.getElementById("login-overlay").classList.add("hidden");
-    }
-
-    function clearApp() {
-      links = [];
-      sources = [];
-      renderSourceOptions();
-      renderLinks();
-      renderSources();
-      renderStats();
-      updateH();
-    }
-
-    function setLoadError(stage, error) {
-      const msg = typeof error === "string"
-        ? error
-        : (error?.message || JSON.stringify(error));
-      console.error("DB ERROR:", stage, error);
-      showError("Ошибка на этапе: " + stage + "\n" + msg);
-      sync("err", "ошибка загрузки");
-      toast("Ошибка: " + msg, "err");
-      document.getElementById("items-list").innerHTML = "<div class='empty'>Ошибка загрузки links: " + e(msg) + "</div>";
-      document.getElementById("src-grid").innerHTML = "<div class='empty'>Ошибка загрузки sources: " + e(msg) + "</div>";
-      document.getElementById("stats-content").innerHTML = "<div class='empty'>Ошибка загрузки статистики: " + e(msg) + "</div>";
-    }
-
-    function boot() {
-  setAllowedEmailLabel();
-  setUserUi();
-
-  supabaseClient.auth.onAuthStateChange((event, session) => {
-    console.log("AUTH EVENT:", event);
-
-    if (event === "SIGNED_OUT") {
-      currentUser = null;
-      setUserUi();
-      clearApp();
-      showLogin();
-      sync("err", "нужен вход");
-      return;
-    }
-
-    if (session?.user) {
-      currentUser = session.user;
-      setUserUi();
-      hideLogin();
-
-      setTimeout(() => {
-        initApp();
-      }, 0);
-    }
-  });
-
-  sync("loading", "проверка сессии...");
-
-  supabaseClient.auth.getSession().then(({ data, error }) => {
-    if (error) {
-      console.error("SESSION ERROR:", error);
-      showError("Ошибка сессии: " + (error.message || "unknown"));
-      sync("err", "ошибка сессии");
-      showLogin();
-      return;
-    }
-
-    if (!data.session?.user) {
-      currentUser = null;
-      setUserUi();
-      showLogin();
-      sync("err", "нужен вход");
-      return;
-    }
-
-    currentUser = data.session.user;
-    setUserUi();
-    hideLogin();
-
-    setTimeout(() => {
-      initApp();
-    }, 0);
-  });
-}
-
-    async function login() {
-      const email = v("login-email").toLowerCase();
-      const password = v("login-password");
-
-      if (!email) {
-        toast("Введите email", "err");
-        return;
-      }
-
-      if (!password) {
-        toast("Введите пароль", "err");
-        return;
-      }
-
-      if (ALLOWED_EMAIL && email !== ALLOWED_EMAIL.toLowerCase()) {
-        toast("Этот email не разрешён", "err");
-        return;
-      }
-
-      const btn = document.getElementById("btn-login");
-      btn.disabled = true;
-      btn.textContent = "Вход...";
-
-      const { error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      btn.disabled = false;
-      btn.textContent = "Войти";
-
-      if (error) {
-        console.error("LOGIN ERROR:", error);
-        showError("Ошибка входа: " + (error.message || "unknown"));
-        toast("Ошибка входа: " + error.message, "err");
-        return;
-      }
-
-      clearError();
-      toast("Вход выполнен");
-    }
-
-    async function logoutNow() {
+    function loadUiSettings() {
       try {
-        console.log("LOGOUT CLICK");
-        await supabaseClient.auth.signOut({ scope: "local" });
-        currentUser = null;
-        setUserUi();
-        clearApp();
-        showLogin();
-        sync("err", "выход выполнен");
-        toast("Вы вышли");
-        location.reload();
-      } catch (error) {
-        console.error("LOGOUT ERROR:", error);
-        showError("Ошибка выхода: " + (error?.message || JSON.stringify(error)));
-        toast("Ошибка выхода", "err");
+        return JSON.parse(localStorage.getItem('contentSystemSettings') || '{}');
+      } catch {
+        return {};
       }
     }
-
-    async function initApp() {
-  if (isInitializing) return;
-  if (!currentUser) return;
-
-  isInitializing = true;
-  clearError();
-  sync("loading", "загрузка данных...");
-
-  try {
-    await loadSources();
-    await loadLinks();
-    renderStats();
-    sync("ok", "Supabase ✓");
-  } catch (error) {
-    console.error("INIT ERROR:", error);
-    setLoadError("initApp", error);
-  } finally {
-    isInitializing = false;
-  }
-}
-
-    async function loadLinks() {
-      const { data, error } = await db
-        .from("links")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      links = data || [];
-      renderLinks();
-      updateH();
-      renderStats();
+    function saveUiSettings() {
+      localStorage.setItem('contentSystemSettings', JSON.stringify(state.settings));
     }
 
-    async function loadSources() {
-      const { data, error } = await db
-        .from("sources")
-        .select("*")
-        .order("created_at", { ascending: true });
+    const App = {
+      async init() {
+        this.bindAuthListener();
+        const { data, error } = await supabaseClient.auth.getSession();
+        if (error) {
+          this.toast('Ошибка сессии: ' + error.message, 'err');
+          this.showLogin();
+          return;
+        }
+        if (data.session?.user) {
+          await this.handleAuthenticatedUser(data.session.user);
+        } else {
+          this.showLogin();
+        }
+      },
 
-      if (error) throw error;
-
-      sources = data || [];
-      renderSourceOptions();
-      renderSources();
-      renderStats();
-    }
-
-    async function analyzeContent() {
-      if (!currentUser) {
-        toast("Сначала войдите", "err");
-        return;
-      }
-
-      const url = v("l-url");
-      const title = v("l-title");
-
-      if (!url && !title) {
-        toast("Сначала введите URL или название");
-        return;
-      }
-
-      const btn = document.getElementById("btn-ai");
-      btn.disabled = true;
-      btn.textContent = "🤖 Анализ...";
-
-      try {
-        const { data: sessionData } = await supabaseClient.auth.getSession();
-        const accessToken = sessionData.session?.access_token;
-
-        const { data, error } = await supabaseClient.functions.invoke("rapid-worker", {
-          headers: accessToken
-            ? { Authorization: "Bearer " + accessToken }
-            : {},
-          body: { url, title }
+      bindAuthListener() {
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+          if (event === 'SIGNED_OUT') {
+            state.user = null;
+            state.initialized = false;
+            this.showLogin();
+            return;
+          }
+          if (session?.user && !state.initialized) {
+            await this.handleAuthenticatedUser(session.user);
+          }
         });
+      },
 
+      async handleAuthenticatedUser(user) {
+        if (ALLOWED_EMAIL && (user.email || '').toLowerCase() !== ALLOWED_EMAIL.toLowerCase()) {
+          await supabaseClient.auth.signOut();
+          this.toast('Этот email не разрешён для входа', 'err');
+          this.showLogin();
+          return;
+        }
+        state.user = user;
+        state.initialized = true;
+        document.getElementById('sidebarUserEmail').textContent = user.email || 'Пользователь';
+        document.getElementById('sidebarUserStatus').textContent = 'Онлайн';
+        this.hideLogin();
+        await this.loadData();
+      },
+
+      showLogin() {
+        document.body.classList.add('auth-locked');
+        document.getElementById('loginOverlay').classList.remove('hidden');
+      },
+
+      hideLogin() {
+        document.body.classList.remove('auth-locked');
+        document.getElementById('loginOverlay').classList.add('hidden');
+      },
+
+      async login() {
+        const email = (document.getElementById('loginEmail').value || '').trim().toLowerCase();
+        const password = document.getElementById('loginPassword').value || '';
+        if (!email || !password) {
+          this.toast('Введите email и пароль', 'err');
+          return;
+        }
+        if (ALLOWED_EMAIL && email !== ALLOWED_EMAIL.toLowerCase()) {
+          this.toast('Этот email не разрешён', 'err');
+          return;
+        }
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+          this.toast('Ошибка входа: ' + error.message, 'err');
+          return;
+        }
+        this.toast('Вход выполнен');
+      },
+
+      async logout() {
+        await supabaseClient.auth.signOut({ scope: 'local' });
+        location.reload();
+      },
+
+      async loadData() {
+        if (!state.user) return;
+        try {
+          const [materialsRes, sourcesRes, promptsRes, sectionsRes] = await Promise.all([
+            supabaseClient.from('materials').select('*').order('updated_at', { ascending: false }),
+            supabaseClient.from('sources').select('*').order('updated_at', { ascending: false }),
+            supabaseClient.from('prompts').select('*').order('updated_at', { ascending: false }),
+            supabaseClient.from('material_sections').select('*').order('position', { ascending: true })
+          ]);
+          if (materialsRes.error) throw materialsRes.error;
+          if (sourcesRes.error) throw sourcesRes.error;
+          if (promptsRes.error) throw promptsRes.error;
+          if (sectionsRes.error) throw sectionsRes.error;
+
+          state.materials = materialsRes.data || [];
+          state.sources = sourcesRes.data || [];
+          state.prompts = promptsRes.data || [];
+          state.sectionsByMaterial = {};
+          (sectionsRes.data || []).forEach(section => {
+            if (!state.sectionsByMaterial[section.material_id]) state.sectionsByMaterial[section.material_id] = [];
+            state.sectionsByMaterial[section.material_id].push(this.prepareSection(section));
+          });
+
+          if (!state.prompts.length) {
+            await this.ensureDefaultPrompts();
+          }
+
+          this.updateTopbarSummary();
+          this.render();
+        } catch (error) {
+          console.error(error);
+          this.toast('Ошибка загрузки: ' + (error.message || 'неизвестно'), 'err');
+        }
+      },
+
+      prepareSection(section) {
+        return {
+          ...section,
+          data: section.data || {},
+          checklist: this.normalizeChecklist(section.checklist)
+        };
+      },
+
+      normalizeChecklist(raw) {
+        if (!raw) return [];
+        if (Array.isArray(raw)) {
+          return raw.map(item => {
+            if (typeof item === 'string') return { text: item, done: false };
+            return { text: String(item.text || ''), done: Boolean(item.done) };
+          }).filter(item => item.text);
+        }
+        return [];
+      },
+
+      async ensureDefaultPrompts() {
+        const rows = DEFAULT_PROMPTS.map(prompt => ({ ...prompt, user_id: state.user.id }));
+        const { error } = await supabaseClient.from('prompts').insert(rows);
+        if (!error) {
+          const { data } = await supabaseClient.from('prompts').select('*').order('updated_at', { ascending: false });
+          state.prompts = data || [];
+        }
+      },
+
+      updateTopbarSummary() {
+        const total = state.materials.length;
+        const inWork = state.materials.filter(item => ['research','script','production'].includes(item.status)).length;
+        document.getElementById('topbarSummary').textContent = `${total} материалов · ${inWork} в процессе`;
+      },
+
+      setSearch(value) {
+        state.search = value || '';
+        this.render();
+      },
+
+      switchView(view) {
+        if (state.currentView === 'detail' && state.dirtyMaterial) {
+          // no-op, explicit save is preferred
+        }
+        state.previousView = state.currentView === 'detail' ? (state.previousView || 'library') : state.currentView;
+        state.currentView = view;
+        if (view !== 'detail') state.currentMaterialId = null;
+        this.render();
+      },
+
+      goBackFromDetail() {
+        state.currentView = state.previousView || 'library';
+        state.currentMaterialId = null;
+        this.render();
+      },
+
+      goToQuickAdd(prefillType = null) {
+        state.currentView = 'library';
+        this.render();
+        setTimeout(() => {
+          if (prefillType) {
+            const typeField = document.getElementById('qaType');
+            if (typeField) typeField.value = prefillType;
+          }
+          const target = document.getElementById('qaUrl');
+          if (target) target.focus();
+        }, 30);
+      },
+
+      render() {
+        this.highlightNav();
+        this.syncSearchPlaceholder();
+        const root = document.getElementById('viewRoot');
+        if (!state.user) {
+          root.innerHTML = '';
+          return;
+        }
+        if (state.currentView === 'library') root.innerHTML = this.renderLibraryView();
+        else if (state.currentView === 'board') root.innerHTML = this.renderBoardView();
+        else if (state.currentView === 'templates') root.innerHTML = this.renderTemplatesView();
+        else if (state.currentView === 'sources') root.innerHTML = this.renderSourcesView();
+        else if (state.currentView === 'prompts') root.innerHTML = this.renderPromptsView();
+        else if (state.currentView === 'settings') root.innerHTML = this.renderSettingsView();
+        else if (state.currentView === 'detail') root.innerHTML = this.renderDetailView();
+      },
+
+      syncSearchPlaceholder() {
+        const input = document.getElementById('globalSearch');
+        const map = {
+          library: 'Поиск по библиотеке...',
+          board: 'Поиск по доске...',
+          templates: 'Поиск по шаблонам...',
+          sources: 'Поиск по источникам...',
+          prompts: 'Поиск по промптам...',
+          settings: 'Поиск в настройках...',
+          detail: 'Поиск внутри материала...'
+        };
+        input.placeholder = map[state.currentView] || 'Поиск...';
+      },
+
+      highlightNav() {
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        if (state.currentView === 'detail') {
+          const lib = document.querySelector('.nav-btn[data-view="library"]');
+          if (lib) lib.classList.add('active');
+        } else {
+          const active = document.querySelector(`.nav-btn[data-view="${state.currentView}"]`);
+          if (active) active.classList.add('active');
+        }
+      },
+
+      getFilteredMaterials(forBoard = false) {
+        const q = state.search.trim().toLowerCase();
+        return state.materials.filter(item => {
+          const sourceName = item.source_name || this.getSourceName(item.source_id) || '';
+          const matchesSearch = !q || [item.title, item.short_task, item.source_url, sourceName].filter(Boolean).some(v => String(v).toLowerCase().includes(q));
+          const matchesType = state.filters.type === 'all' || item.material_type === state.filters.type;
+          const matchesStatus = state.filters.status === 'all' || item.status === state.filters.status;
+          const matchesTranslation = state.filters.translation === 'all' || (state.filters.translation === 'yes' ? item.translation_required : !item.translation_required);
+          const matchesPriority = state.filters.priority === 'all' || item.priority === state.filters.priority;
+          return matchesSearch && matchesType && matchesStatus && matchesTranslation && matchesPriority;
+        });
+      },
+
+      renderFilterChips(showStatus = true) {
+        return `
+          <div class="filters-row">
+            <span class="small-label">Фильтры:</span>
+            <button class="chip ${state.filters.type === 'all' ? 'active' : ''}" onclick="App.setFilter('type','all')">Все</button>
+            ${MATERIAL_TYPES.filter(t => t.id !== 'raw').map(type => `<button class="chip ${state.filters.type === type.id ? 'active' : ''}" onclick="App.setFilter('type','${type.id}')">${type.label}</button>`).join('')}
+            ${showStatus ? STATUSES.slice(0,7).map(status => `<button class="chip ${state.filters.status === status.id ? 'active' : ''}" onclick="App.setFilter('status','${status.id}')">${status.label}</button>`).join('') : ''}
+            <button class="chip ${state.filters.priority === 'high' ? 'active' : ''}" onclick="App.setFilter('priority', state.filters.priority === 'high' ? 'all' : 'high')">Срочное</button>
+            <button class="chip ${state.filters.translation === 'yes' ? 'active' : ''}" onclick="App.setFilter('translation', state.filters.translation === 'yes' ? 'all' : 'yes')">Нужен перевод</button>
+            <button class="chip" onclick="App.resetFilters()">Сбросить</button>
+          </div>
+        `;
+      },
+
+      setFilter(key, value) {
+        state.filters[key] = value;
+        this.render();
+      },
+
+      resetFilters() {
+        state.filters = { type: 'all', status: 'all', translation: 'all', priority: 'all' };
+        state.search = '';
+        document.getElementById('globalSearch').value = '';
+        this.render();
+      },
+
+      renderLibraryView() {
+        const materials = this.getFilteredMaterials();
+        return `
+          <div class="hero">
+            <h1>Библиотека материалов</h1>
+            <p>Собирайте статьи, видео, посты и карусели, раскладывайте их по этапам и доводите до готового контента в одной системе.</p>
+          </div>
+          <div class="split">
+            <div>
+              <div class="panel quick-form">
+                <div class="panel-head">
+                  <div class="section-title">Быстрое добавление</div>
+                </div>
+                <div class="panel-body">
+                  <div class="field">
+                    <label>Ссылка</label>
+                    <input id="qaUrl" class="input" placeholder="https://..." />
+                  </div>
+                  <div class="field">
+                    <label>Название</label>
+                    <input id="qaTitle" class="input" placeholder="Короткое название материала" />
+                  </div>
+                  <div class="grid">
+                    <div class="field">
+                      <label>Тип</label>
+                      <select id="qaType" class="select">
+                        ${MATERIAL_TYPES.map(t => `<option value="${t.id}">${t.label}</option>`).join('')}
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Приоритет</label>
+                      <select id="qaPriority" class="select">
+                        ${PRIORITIES.map(p => `<option value="${p.id}" ${p.id === 'medium' ? 'selected' : ''}>${p.label}</option>`).join('')}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="grid">
+                    <div class="field">
+                      <label>Итоговый формат</label>
+                      <select id="qaOutput" class="select">
+                        ${OUTPUT_FORMATS.map(out => `<option value="${out.id}">${out.label}</option>`).join('')}
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label>Источник</label>
+                      <select id="qaSource" class="select">
+                        <option value="">Без привязки</option>
+                        ${state.sources.map(source => `<option value="${source.id}">${e(source.name)}</option>`).join('')}
+                      </select>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label>Что нужно сделать</label>
+                    <textarea id="qaTask" class="textarea" placeholder="Короткая задача: что вы хотите получить из этого материала"></textarea>
+                  </div>
+                  <div class="field">
+                    <label><input id="qaTranslation" type="checkbox" style="accent-color:var(--accent);margin-right:8px">Нужен перевод</label>
+                  </div>
+                  <button class="btn btn-primary w-100" onclick="App.quickAddMaterial()">Сохранить во входящие</button>
+                </div>
+              </div>
+              <div class="panel stat-card">
+                <div class="small-label">Ожидают обработки</div>
+                <div class="big">${state.materials.filter(m => m.status === 'inbox').length}</div>
+                <div class="muted" style="margin-top:10px">материалов во входящих</div>
+              </div>
+            </div>
+            <div>
+              ${this.renderFilterChips()}
+              <div class="list-tools">
+                <div class="small-label">${materials.length} записей</div>
+                <div class="seg">
+                  <button class="${!state.compactList ? 'active' : ''}" onclick="App.setCompact(false)">▤</button>
+                  <button class="${state.compactList ? 'active' : ''}" onclick="App.setCompact(true)">☷</button>
+                </div>
+              </div>
+              ${materials.length ? `<div class="material-list">${materials.map(item => this.renderMaterialCard(item)).join('')}</div>` : `<div class="empty">Ничего не найдено. Попробуйте другой фильтр или добавьте новый материал.</div>`}
+            </div>
+          </div>
+        `;
+      },
+
+      setCompact(flag) {
+        state.compactList = flag;
+        this.render();
+      },
+
+      renderMaterialCard(item) {
+        const progress = this.getMaterialProgress(item.id);
+        const sourceName = item.source_name || this.getSourceName(item.source_id) || this.domainFromUrl(item.source_url) || 'Источник не указан';
+        return `
+          <div class="material-card ${state.compactList ? 'compact' : ''}">
+            <div>
+              <div class="meta-line">
+                <span class="badge type">${this.getTypeLabel(item.material_type)}</span>
+                <span>•</span>
+                <span>${e(sourceName)}</span>
+                ${item.translation_required ? `<span class="badge translation">Нужен перевод</span>` : ''}
+                <span class="badge output">${this.getOutputLabel(item.output_format)}</span>
+              </div>
+              <h3>${e(item.title)}</h3>
+              <p>${e(item.short_task || 'Задача не описана')}</p>
+              <div class="meta-line" style="margin-top:14px">
+                <span class="badge status">${this.getStatusLabel(item.status)}</span>
+                <span class="badge priority-${item.priority}">${this.getPriorityLabel(item.priority)}</span>
+                <span>${this.formatDate(item.updated_at)}</span>
+              </div>
+            </div>
+            <div class="card-actions">
+              <div class="inline-actions">
+                <button class="icon-btn" title="Открыть" onclick="App.openMaterial('${item.id}')">↗</button>
+                <button class="icon-btn" title="Архив" onclick="App.quickMoveStatus('${item.id}','archive')">⌁</button>
+              </div>
+              <div class="progress">
+                <span>${progress.done}/${progress.total || 0} задач</span>
+                <div class="progress-bar"><span style="width:${progress.percent}%"></span></div>
+              </div>
+            </div>
+          </div>
+        `;
+      },
+
+      renderBoardView() {
+        const materials = this.getFilteredMaterials(true);
+        return `
+          <div class="page-head">
+            <div>
+              <h1>Контент-план</h1>
+              <p>Перетаскивайте материалы по этапам: от входящих к публикации. Это обзор пайплайна, а не место для глубокой работы.</p>
+            </div>
+          </div>
+          ${this.renderFilterChips(false)}
+          <div class="board-wrap">
+            ${STATUSES.slice(0,7).map(status => {
+              const items = materials.filter(item => item.status === status.id);
+              return `
+                <section class="board-col" ondragover="App.onDragOver(event)" ondrop="App.onDrop(event,'${status.id}')">
+                  <div class="board-head">
+                    <h3>${status.label}</h3>
+                    <div class="board-count">${items.length}</div>
+                  </div>
+                  <div class="board-list">
+                    ${items.map(item => this.renderBoardCard(item)).join('') || `<div class="board-drop">Пока пусто</div>`}
+                  </div>
+                </section>
+              `;
+            }).join('')}
+          </div>
+        `;
+      },
+
+      renderBoardCard(item) {
+        const progress = this.getMaterialProgress(item.id);
+        return `
+          <article class="board-card" draggable="true" ondragstart="App.onDragStart(event,'${item.id}')">
+            <div class="meta-line">
+              <span class="badge type">${this.getTypeLabel(item.material_type)}</span>
+              ${item.translation_required ? `<span class="badge translation">Нужен перевод</span>` : ''}
+            </div>
+            <h4>${e(item.title)}</h4>
+            <p>${e(item.short_task || 'Без описания задачи')}</p>
+            <div class="meta-line" style="margin-top:14px">
+              <span class="badge output">${this.getOutputLabel(item.output_format)}</span>
+              <span class="badge priority-${item.priority}">${this.getPriorityLabel(item.priority)}</span>
+            </div>
+            <div class="progress" style="margin-top:16px">
+              <span>${progress.done}/${progress.total || 0}</span>
+              <div class="progress-bar"><span style="width:${progress.percent}%"></span></div>
+            </div>
+            <div class="inline-actions" style="margin-top:14px">
+              <button class="btn btn-ghost btn-sm" onclick="App.openMaterial('${item.id}')">Открыть</button>
+              <button class="btn btn-soft btn-sm" onclick="App.quickAdvance('${item.id}')">Дальше →</button>
+            </div>
+          </article>
+        `;
+      },
+
+      renderTemplatesView() {
+        return `
+          <div class="page-head">
+            <div>
+              <h1>Шаблоны</h1>
+              <p>Стартовые сценарии под разные типы материалов. Выберите шаблон, чтобы создать карточку с готовой структурой секций и чеклистов.</p>
+            </div>
+          </div>
+          <div class="cards-grid">
+            ${Object.entries(SYSTEM_TEMPLATES).map(([key, tpl]) => `
+              <div class="template-card">
+                <div class="small-label">${tpl.label}</div>
+                <h3>${tpl.label}</h3>
+                <p>${e(tpl.description)}</p>
+                <div class="template-sections">
+                  ${tpl.sections.slice(0,6).map(s => `<span class="chip">${e(s.title)}</span>`).join('')}
+                  ${tpl.sections.length > 6 ? `<span class="chip">+${tpl.sections.length - 6}</span>` : ''}
+                </div>
+                <div class="template-actions">
+                  <button class="btn btn-primary btn-sm" onclick="App.createFromTemplate('${key}')">Использовать шаблон</button>
+                  <button class="btn btn-ghost btn-sm" onclick="App.previewTemplate('${key}')">Открыть структуру</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      },
+
+      renderSourcesView() {
+        const q = state.search.trim().toLowerCase();
+        const sources = state.sources.filter(source => !q || [source.name, source.url, source.description, source.category].filter(Boolean).some(v => String(v).toLowerCase().includes(q)));
+        return `
+          <div class="page-head">
+            <div>
+              <h1>Источники</h1>
+              <p>Каналы, сайты, авторы и базы материалов. Привязывайте их к карточкам, чтобы не терять контекст и быстрее сортировать входящие.</p>
+            </div>
+            <div class="count-pill">${state.sources.length} источников</div>
+          </div>
+          <div class="panel source-form">
+            <div class="panel-body">
+              <div class="source-form grid-3">
+                <div class="field">
+                  <label>Название</label>
+                  <input id="sourceName" class="input" placeholder="Например, The Rundown AI" />
+                </div>
+                <div class="field">
+                  <label>Тип</label>
+                  <select id="sourceType" class="select">${SOURCE_TYPES.map(type => `<option value="${type.id}">${type.label}</option>`).join('')}</select>
+                </div>
+                <div class="field">
+                  <label>Категория</label>
+                  <input id="sourceCategory" class="input" placeholder="AI / Маркетинг / Оба" />
+                </div>
+              </div>
+              <div class="source-form grid">
+                <div class="field">
+                  <label>Ссылка</label>
+                  <input id="sourceUrl" class="input" placeholder="https://..." />
+                </div>
+                <div class="field">
+                  <label>Короткое описание</label>
+                  <input id="sourceDescription" class="input" placeholder="Почему этот источник полезен" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Заметки</label>
+                <textarea id="sourceNotes" class="textarea" placeholder="Дополнительные заметки по источнику"></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="App.addSource()">Добавить источник</button>
+            </div>
+          </div>
+          ${sources.length ? `<div class="cards-grid">${sources.map(source => this.renderSourceCard(source)).join('')}</div>` : `<div class="empty">Источники пока не добавлены.</div>`}
+        `;
+      },
+
+      renderSourceCard(source) {
+        const linked = state.materials.filter(item => item.source_id === source.id).length;
+        return `
+          <div class="source-card">
+            <div class="meta-line">
+              <span class="badge type">${this.getSourceTypeLabel(source.source_type)}</span>
+              ${source.category ? `<span class="badge output">${e(source.category)}</span>` : ''}
+            </div>
+            <h3>${e(source.name)}</h3>
+            <p>${e(source.description || 'Описание не добавлено')}</p>
+            <div class="meta-line" style="margin-top:14px">
+              <span>${linked} материалов</span>
+              ${source.url ? `<a href="${e(source.url)}" target="_blank" rel="noopener">Открыть ↗</a>` : ''}
+            </div>
+            <div class="template-actions">
+              <button class="btn btn-ghost btn-sm" onclick="App.prefillFromSource('${source.id}')">Создать материал</button>
+              <button class="btn btn-danger btn-sm" onclick="App.deleteSource('${source.id}')">Удалить</button>
+            </div>
+          </div>
+        `;
+      },
+
+      renderPromptsView() {
+        const q = state.search.trim().toLowerCase();
+        const prompts = state.prompts.filter(prompt => {
+          const byCategory = state.promptsFilter === 'all' || prompt.category === state.promptsFilter;
+          const byQuery = !q || [prompt.title, prompt.description, prompt.body].filter(Boolean).some(v => String(v).toLowerCase().includes(q));
+          return byCategory && byQuery;
+        });
+        return `
+          <div class="page-head">
+            <div>
+              <h1>Библиотека промптов</h1>
+              <p>Систематизированный набор рабочих инструкций для перевода, выжимки тезисов, ресерча, сценариев и упаковки контента.</p>
+            </div>
+            <div class="count-pill">${state.prompts.length} активных</div>
+          </div>
+          <div class="panel prompt-form">
+            <div class="panel-body">
+              <div class="prompt-form grid-3">
+                <div class="field">
+                  <label>Название</label>
+                  <input id="promptTitle" class="input" placeholder="Например, Глубокое саммари статьи" />
+                </div>
+                <div class="field">
+                  <label>Категория</label>
+                  <select id="promptCategory" class="select">${PROMPT_CATEGORIES.map(c => `<option value="${c.id}">${c.label}</option>`).join('')}</select>
+                </div>
+                <div class="field">
+                  <label>Короткое описание</label>
+                  <input id="promptDescription" class="input" placeholder="Для чего нужен этот промпт" />
+                </div>
+              </div>
+              <div class="field">
+                <label>Текст промпта</label>
+                <textarea id="promptBody" class="textarea big" placeholder="Вставьте рабочий промпт"></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="App.addPrompt()">Сохранить промпт</button>
+            </div>
+          </div>
+          <div class="filters-row">
+            <button class="chip ${state.promptsFilter === 'all' ? 'active' : ''}" onclick="App.setPromptFilter('all')">Все</button>
+            ${PROMPT_CATEGORIES.map(cat => `<button class="chip ${state.promptsFilter === cat.id ? 'active' : ''}" onclick="App.setPromptFilter('${cat.id}')">${cat.label}</button>`).join('')}
+          </div>
+          ${prompts.length ? `<div class="cards-grid">${prompts.map(prompt => this.renderPromptCard(prompt)).join('')}</div>` : `<div class="empty">Промпты не найдены. Добавьте первый рабочий шаблон.</div>`}
+        `;
+      },
+
+      renderPromptCard(prompt) {
+        return `
+          <div class="prompt-card">
+            <div class="meta-line">
+              <span class="badge type">${this.getPromptCategoryLabel(prompt.category)}</span>
+              ${prompt.is_favorite ? `<span class="badge output">Избранное</span>` : ''}
+            </div>
+            <h3>${e(prompt.title)}</h3>
+            <p>${e(prompt.description || 'Без описания')}</p>
+            <div class="surface-note" style="margin-top:16px">${e(this.trimText(prompt.body, 220))}</div>
+            <div class="prompt-actions">
+              <button class="btn btn-primary btn-sm" onclick="App.copyPrompt('${prompt.id}')">Копировать</button>
+              <button class="btn btn-ghost btn-sm" onclick="App.toggleFavoritePrompt('${prompt.id}')">${prompt.is_favorite ? 'Убрать из избранного' : 'В избранное'}</button>
+              <button class="btn btn-danger btn-sm" onclick="App.deletePrompt('${prompt.id}')">Удалить</button>
+            </div>
+          </div>
+        `;
+      },
+
+      renderSettingsView() {
+        return `
+          <div class="page-head">
+            <div>
+              <h1>Настройки</h1>
+              <p>Базовые словари, внешний вид и служебные действия. Здесь нет сложной конфигурации — только то, что полезно в повседневной работе.</p>
+            </div>
+          </div>
+          <div class="settings-layout">
+            <div class="settings-tabs">
+              <button class="settings-tab active">Справочники</button>
+              <button class="settings-tab">Внешний вид</button>
+              <button class="settings-tab">Экспорт</button>
+            </div>
+            <div>
+              <div class="settings-block">
+                <h3>Справочники</h3>
+                <div class="small-label" style="margin-bottom:10px">Статусы материалов</div>
+                <div class="settings-list">${STATUSES.map(s => `<span class="chip">${s.label}</span>`).join('')}</div>
+                <div class="hr"></div>
+                <div class="small-label" style="margin-bottom:10px">Типы материалов</div>
+                <div class="settings-list">${MATERIAL_TYPES.map(t => `<span class="chip">${t.label}</span>`).join('')}</div>
+                <div class="hr"></div>
+                <div class="small-label" style="margin-bottom:10px">Форматы выхода</div>
+                <div class="settings-list">${OUTPUT_FORMATS.map(o => `<span class="chip">${o.label}</span>`).join('')}</div>
+              </div>
+              <div class="settings-block">
+                <h3>Внешний вид</h3>
+                <div class="toggle-row">
+                  <div>
+                    <strong>Компактный вид списков</strong>
+                    <div class="muted">Уменьшает внутренние отступы у карточек в библиотеке.</div>
+                  </div>
+                  <button class="toggle ${state.settings.compactCards ? 'active' : ''}" onclick="App.toggleSetting('compactCards')"><span></span></button>
+                </div>
+                <div class="toggle-row">
+                  <div>
+                    <strong>Показывать превью URL</strong>
+                    <div class="muted">Оставляет домен источника в карточках материалов.</div>
+                  </div>
+                  <button class="toggle ${state.settings.showSourceMeta !== false ? 'active' : ''}" onclick="App.toggleSetting('showSourceMeta')"><span></span></button>
+                </div>
+              </div>
+              <div class="settings-block">
+                <h3>Экспорт</h3>
+                <div class="muted" style="margin-bottom:16px">Скачать все материалы, секции, источники и промпты в одном JSON-файле.</div>
+                <button class="btn btn-primary" onclick="App.exportBackup()">Скачать backup.json</button>
+              </div>
+            </div>
+          </div>
+        `;
+      },
+
+      renderDetailView() {
+        const material = state.materials.find(item => item.id === state.currentMaterialId);
+        if (!material) {
+          return `<div class="empty">Материал не найден.</div>`;
+        }
+        const sections = (state.sectionsByMaterial[material.id] || []).slice().sort((a,b) => a.position - b.position);
+        const progress = this.getMaterialProgress(material.id);
+        return `
+          <div class="detail-shell">
+            <div class="detail-main">
+              <div class="detail-top">
+                <div>
+                  <a class="back-link" href="#" onclick="event.preventDefault();App.goBackFromDetail()">← Назад</a>
+                  <h1>${e(material.title)}</h1>
+                  <div class="detail-meta">
+                    <span class="badge type">${this.getTypeLabel(material.material_type)}</span>
+                    <span class="badge status">${this.getStatusLabel(material.status)}</span>
+                    <span class="badge priority-${material.priority}">${this.getPriorityLabel(material.priority)}</span>
+                    <span class="badge output">${this.getOutputLabel(material.output_format)}</span>
+                    ${material.translation_required ? `<span class="badge translation">Нужен перевод</span>` : ''}
+                  </div>
+                  <div class="detail-source">${material.source_url ? `<a href="${e(material.source_url)}" target="_blank" rel="noopener">${e(material.source_url)}</a>` : `<span class="muted">Ссылка не указана</span>`}</div>
+                </div>
+                <div class="detail-actions">
+                  <button class="btn btn-ghost" onclick="App.saveDetail()">Сохранить</button>
+                  <button class="btn btn-primary" onclick="App.markDetailComplete()">✓ Завершить</button>
+                </div>
+              </div>
+
+              <div class="detail-task">
+                <div class="small-label">Задача</div>
+                <div style="margin-top:8px">${e(material.short_task || 'Задача пока не описана')}</div>
+              </div>
+
+              <div class="detail-section" id="meta-section">
+                <div class="section-tools">
+                  <div>
+                    <h3>Параметры карточки</h3>
+                    <div class="detail-helper">Здесь меняются основные свойства материала: название, статус, приоритет, формат выхода и привязка к источнику.</div>
+                  </div>
+                </div>
+                <div class="section-grid">
+                  <div class="field">
+                    <label>Название</label>
+                    <input id="detailTitle" class="input" value="${eAttr(material.title)}" oninput="App.markMaterialDirty()" />
+                  </div>
+                  <div class="field">
+                    <label>Ссылка</label>
+                    <input id="detailUrl" class="input" value="${eAttr(material.source_url || '')}" oninput="App.markMaterialDirty()" />
+                  </div>
+                  <div class="field">
+                    <label>Тип материала</label>
+                    <select id="detailType" class="select" onchange="App.onTypeChange(this.value)">
+                      ${MATERIAL_TYPES.map(t => `<option value="${t.id}" ${material.material_type === t.id ? 'selected' : ''}>${t.label}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Статус</label>
+                    <select id="detailStatus" class="select" onchange="App.markMaterialDirty()">
+                      ${STATUSES.map(s => `<option value="${s.id}" ${material.status === s.id ? 'selected' : ''}>${s.label}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Приоритет</label>
+                    <select id="detailPriority" class="select" onchange="App.markMaterialDirty()">
+                      ${PRIORITIES.map(p => `<option value="${p.id}" ${material.priority === p.id ? 'selected' : ''}>${p.label}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Итоговый формат</label>
+                    <select id="detailOutput" class="select" onchange="App.markMaterialDirty()">
+                      ${OUTPUT_FORMATS.map(o => `<option value="${o.id}" ${material.output_format === o.id ? 'selected' : ''}>${o.label}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Источник</label>
+                    <select id="detailSourceId" class="select" onchange="App.markMaterialDirty()">
+                      <option value="">Без привязки</option>
+                      ${state.sources.map(source => `<option value="${source.id}" ${material.source_id === source.id ? 'selected' : ''}>${e(source.name)}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Нужен перевод</label>
+                    <div class="surface-note"><label><input id="detailTranslation" type="checkbox" ${material.translation_required ? 'checked' : ''} onchange="App.markMaterialDirty()" style="accent-color:var(--accent);margin-right:8px">Да, нужен перевод / адаптация</label></div>
+                  </div>
+                </div>
+                <div class="field" style="margin-top:12px">
+                  <label>Краткая задача</label>
+                  <textarea id="detailTask" class="textarea" oninput="App.markMaterialDirty()">${e(material.short_task || '')}</textarea>
+                </div>
+              </div>
+
+              ${sections.map((section, index) => this.renderDetailSection(material, section, index)).join('')}
+            </div>
+
+            <aside class="detail-side">
+              <div class="summary-card">
+                <h4>Прогресс</h4>
+                <div class="pill-line"><span>Выполнено</span><strong>${progress.percent}%</strong></div>
+                <div class="progress-bar" style="width:100%;height:10px;margin-bottom:12px"><span style="width:${progress.percent}%"></span></div>
+                <div class="pill-line"><span>Задач выполнено</span><strong>${progress.done} / ${progress.total || 0}</strong></div>
+                <div class="pill-line"><span>Этап</span><strong>${this.getStatusLabel(material.status)}</strong></div>
+                <div class="pill-line"><span>Формат</span><strong>${this.getOutputLabel(material.output_format)}</strong></div>
+              </div>
+              <div class="summary-card">
+                <h4>Навигация по карточке</h4>
+                <div class="summary-nav">
+                  <a href="#meta-section">Параметры карточки</a>
+                  ${sections.map(section => `<a href="#section-${section.id}">${e(section.title)}</a>`).join('')}
+                </div>
+              </div>
+              <div class="summary-card">
+                <h4>Быстрые действия</h4>
+                <div class="inline-actions">
+                  <button class="btn btn-ghost btn-sm" onclick="App.duplicateMaterial('${material.id}')">Дублировать</button>
+                  <button class="btn btn-ghost btn-sm" onclick="App.quickAdvance('${material.id}')">Следующий этап</button>
+                  <button class="btn btn-danger btn-sm" onclick="App.deleteMaterial('${material.id}')">Удалить</button>
+                </div>
+              </div>
+            </aside>
+          </div>
+        `;
+      },
+
+      renderDetailSection(material, section) {
+        return `
+          <section class="detail-section" id="section-${section.id}">
+            <div class="section-tools">
+              <div>
+                <h3>${e(section.title)}</h3>
+                ${section.helper ? `<div class="detail-helper">${e(section.helper)}</div>` : ''}
+              </div>
+              <div class="inline-actions">
+                <button class="btn btn-ghost btn-sm" onclick="App.copySection('${section.id}')">Скопировать</button>
+              </div>
+            </div>
+            ${section.subfields && section.subfields.length ? `
+              <div class="section-grid">
+                ${section.subfields.map(field => this.renderSectionField(section, field)).join('')}
+              </div>
+            ` : ''}
+            ${section.content !== undefined ? `
+              <div class="field">
+                <label>${e(section.bodyLabel || 'Заметки')}</label>
+                <textarea class="textarea big" oninput="App.updateSectionContent('${section.id}', this.value)">${e(section.content || '')}</textarea>
+              </div>
+            ` : ''}
+            <div class="hr"></div>
+            <div class="small-label" style="margin-bottom:12px">Чеклист</div>
+            <div class="checklist">
+              ${section.checklist.length ? section.checklist.map((item, index) => `
+                <label class="check-item ${item.done ? 'done' : ''}">
+                  <input type="checkbox" ${item.done ? 'checked' : ''} onchange="App.toggleChecklist('${section.id}', ${index})">
+                  <span>${e(item.text)}</span>
+                  <button class="icon-btn" type="button" onclick="App.removeChecklistItem('${section.id}', ${index})">×</button>
+                </label>
+              `).join('') : `<div class="surface-note">Пока нет чеклиста. Добавьте первый пункт ниже.</div>`}
+            </div>
+            <div class="check-add">
+              <input id="check-input-${section.id}" class="input" placeholder="Добавить пункт чеклиста" />
+              <button class="btn btn-soft btn-sm" onclick="App.addChecklistItem('${section.id}')">Добавить</button>
+            </div>
+          </section>
+        `;
+      },
+
+      renderSectionField(section, field) {
+        const value = section.data?.[field.key] || '';
+        if (field.type === 'textarea') {
+          return `
+            <div class="field">
+              <label>${e(field.label)}</label>
+              <textarea class="textarea" oninput="App.updateSectionData('${section.id}','${field.key}', this.value)">${e(value)}</textarea>
+            </div>
+          `;
+        }
+        return `
+          <div class="field">
+            <label>${e(field.label)}</label>
+            <input class="input" value="${eAttr(value)}" oninput="App.updateSectionData('${section.id}','${field.key}', this.value)" />
+          </div>
+        `;
+      },
+
+      getMaterialProgress(materialId) {
+        const sections = state.sectionsByMaterial[materialId] || [];
+        let total = 0;
+        let done = 0;
+        sections.forEach(section => {
+          const checklist = this.normalizeChecklist(section.checklist);
+          total += checklist.length;
+          done += checklist.filter(item => item.done).length;
+        });
+        const percent = total ? Math.round(done / total * 100) : 0;
+        return { total, done, percent };
+      },
+
+      getSourceName(sourceId) {
+        const source = state.sources.find(item => item.id === sourceId);
+        return source ? source.name : '';
+      },
+
+      async quickAddMaterial() {
+        const payload = {
+          title: v('qaTitle') || 'Новый материал',
+          source_url: v('qaUrl') || null,
+          material_type: g('qaType') || 'raw',
+          priority: g('qaPriority') || 'medium',
+          output_format: g('qaOutput') || 'tg_post',
+          short_task: v('qaTask') || null,
+          translation_required: document.getElementById('qaTranslation').checked,
+          source_id: g('qaSource') || null
+        };
+        try {
+          const material = await this.createMaterial(payload);
+          this.clearQuickAdd();
+          this.toast('Материал добавлен');
+          this.openMaterial(material.id);
+        } catch (error) {
+          console.error(error);
+          this.toast('Ошибка добавления: ' + error.message, 'err');
+        }
+      },
+
+      clearQuickAdd() {
+        ['qaUrl','qaTitle','qaTask'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        const tr = document.getElementById('qaTranslation'); if (tr) tr.checked = false;
+      },
+
+      async createMaterial(payload) {
+        const source = payload.source_id ? state.sources.find(item => item.id === payload.source_id) : null;
+        const row = {
+          user_id: state.user.id,
+          title: payload.title,
+          source_url: payload.source_url,
+          source_name: source?.name || this.domainFromUrl(payload.source_url) || null,
+          source_id: payload.source_id,
+          material_type: payload.material_type,
+          status: payload.status || 'inbox',
+          priority: payload.priority || 'medium',
+          output_format: payload.output_format || 'tg_post',
+          translation_required: Boolean(payload.translation_required),
+          short_task: payload.short_task || null,
+          notes: payload.notes || null
+        };
+        const { data, error } = await supabaseClient.from('materials').insert([row]).select().single();
         if (error) throw error;
-        if (!data) throw new Error("Пустой ответ функции");
-
-        if (data.category) {
-          document.getElementById("l-cat").value = data.category;
+        const templateRows = this.buildSectionRows(data.id, data.material_type);
+        if (templateRows.length) {
+          const { data: sectionsData, error: sectionsError } = await supabaseClient.from('material_sections').insert(templateRows).select().order('position', { ascending: true });
+          if (sectionsError) throw sectionsError;
+          state.sectionsByMaterial[data.id] = (sectionsData || []).map(section => this.prepareSection(section));
+        } else {
+          state.sectionsByMaterial[data.id] = [];
         }
+        state.materials.unshift(data);
+        this.updateTopbarSummary();
+        return data;
+      },
 
-        if (data.ideasText) {
-          document.getElementById("l-idea").value = data.ideasText;
+      buildSectionRows(materialId, materialType) {
+        const template = SYSTEM_TEMPLATES[materialType] || SYSTEM_TEMPLATES.raw;
+        return template.sections.map((section, index) => ({
+          user_id: state.user.id,
+          material_id: materialId,
+          section_key: section.key,
+          title: section.title,
+          helper: section.helper || null,
+          position: index,
+          content: '',
+          data: {},
+          checklist: (section.checklist || []).map(text => ({ text, done: false }))
+        }));
+      },
+
+      async createFromTemplate(type) {
+        try {
+          const title = `Новый материал — ${this.getTypeLabel(type)}`;
+          const material = await this.createMaterial({ title, material_type: type, priority: 'medium', output_format: (SYSTEM_TEMPLATES[type]?.recommended?.[0] || 'notes') });
+          this.openMaterial(material.id);
+          this.toast('Карточка создана по шаблону');
+        } catch (error) {
+          this.toast('Не удалось создать карточку: ' + error.message, 'err');
         }
+      },
 
-        toast("AI-анализ готов ✓");
-      } catch (e) {
-        console.error("AI ERROR:", e);
-        toast("Ошибка AI: " + (e.message || "неизвестная ошибка"), "err");
-      } finally {
-        btn.disabled = false;
-        btn.textContent = "🤖 AI-анализ";
-      }
-    }
+      previewTemplate(type) {
+        const tpl = SYSTEM_TEMPLATES[type];
+        if (!tpl) return;
+        this.toast(`${tpl.label}: ${tpl.sections.map(s => s.title).join(' • ')}`);
+      },
 
-    async function addLink() {
-      if (!currentUser) {
-        toast("Сначала войдите", "err");
-        return;
-      }
+      prefillFromSource(sourceId) {
+        state.currentView = 'library';
+        this.render();
+        setTimeout(() => {
+          const select = document.getElementById('qaSource');
+          if (select) select.value = sourceId;
+          const target = document.getElementById('qaUrl');
+          if (target) target.focus();
+        }, 40);
+      },
 
-      let url = v("l-url");
-      const title = v("l-title");
+      async addSource() {
+        const row = {
+          user_id: state.user.id,
+          name: v('sourceName'),
+          source_type: g('sourceType') || 'website',
+          url: v('sourceUrl') || null,
+          category: v('sourceCategory') || null,
+          description: v('sourceDescription') || null,
+          notes: v('sourceNotes') || null
+        };
+        if (!row.name) {
+          this.toast('Введите название источника', 'err');
+          return;
+        }
+        const { data, error } = await supabaseClient.from('sources').insert([row]).select().single();
+        if (error) {
+          this.toast('Ошибка: ' + error.message, 'err');
+          return;
+        }
+        state.sources.unshift(data);
+        this.render();
+        this.toast('Источник добавлен');
+        ['sourceName','sourceUrl','sourceCategory','sourceDescription','sourceNotes'].forEach(id => document.getElementById(id).value = '');
+      },
 
-      if (!url && !title) {
-        toast("Добавьте ссылку или название");
-        return;
-      }
+      async deleteSource(id) {
+        if (!confirm('Удалить источник?')) return;
+        const { error } = await supabaseClient.from('sources').delete().eq('id', id);
+        if (error) {
+          this.toast('Не удалось удалить источник', 'err');
+          return;
+        }
+        state.sources = state.sources.filter(item => item.id !== id);
+        state.materials = state.materials.map(item => item.source_id === id ? { ...item, source_id: null, source_name: item.source_name } : item);
+        this.render();
+        this.toast('Источник удалён');
+      },
 
-      url = url ? normalizeUrl(url) : "";
+      async addPrompt() {
+        const row = {
+          user_id: state.user.id,
+          title: v('promptTitle'),
+          category: g('promptCategory') || 'research',
+          description: v('promptDescription') || null,
+          body: v('promptBody')
+        };
+        if (!row.title || !row.body) {
+          this.toast('Введите название и текст промпта', 'err');
+          return;
+        }
+        const { data, error } = await supabaseClient.from('prompts').insert([row]).select().single();
+        if (error) {
+          this.toast('Ошибка: ' + error.message, 'err');
+          return;
+        }
+        state.prompts.unshift(data);
+        this.render();
+        this.toast('Промпт сохранён');
+        ['promptTitle','promptDescription','promptBody'].forEach(id => document.getElementById(id).value = '');
+      },
 
-      const btn = document.getElementById("btn-add-link");
-      btn.disabled = true;
-      btn.textContent = "...";
+      setPromptFilter(value) {
+        state.promptsFilter = value;
+        this.render();
+      },
 
-      const row = {
-        id: uid(),
-        url: url || null,
-        title: title || null,
-        cat: g("l-cat"),
-        prio: g("l-prio"),
-        idea: v("l-idea") || null,
-        fmt: g("l-fmt") || null,
-        status: "new",
-        source_id: g("l-source") || null
-      };
+      async copyPrompt(id) {
+        const prompt = state.prompts.find(item => item.id === id);
+        if (!prompt) return;
+        await navigator.clipboard.writeText(prompt.body || '');
+        this.toast('Промпт скопирован');
+      },
 
-      const { error } = await db.from("links").insert([row]);
+      async toggleFavoritePrompt(id) {
+        const prompt = state.prompts.find(item => item.id === id);
+        if (!prompt) return;
+        const next = !prompt.is_favorite;
+        const { error } = await supabaseClient.from('prompts').update({ is_favorite: next }).eq('id', id);
+        if (error) {
+          this.toast('Не удалось обновить промпт', 'err');
+          return;
+        }
+        prompt.is_favorite = next;
+        this.render();
+      },
 
-      btn.disabled = false;
-      btn.textContent = "+ Добавить";
+      async deletePrompt(id) {
+        if (!confirm('Удалить промпт?')) return;
+        const { error } = await supabaseClient.from('prompts').delete().eq('id', id);
+        if (error) {
+          this.toast('Не удалось удалить промпт', 'err');
+          return;
+        }
+        state.prompts = state.prompts.filter(item => item.id !== id);
+        this.render();
+      },
 
-      if (error) {
-        console.error("ADD LINK ERROR:", error);
-        toast("Ошибка: " + error.message, "err");
-        return;
-      }
+      async openMaterial(id) {
+        state.previousView = state.currentView === 'detail' ? (state.previousView || 'library') : state.currentView;
+        state.currentMaterialId = id;
+        state.currentView = 'detail';
+        state.dirtySections.clear();
+        state.dirtyMaterial = false;
+        this.render();
+      },
 
-      document.getElementById("l-url").value = "";
-      document.getElementById("l-title").value = "";
-      document.getElementById("l-idea").value = "";
-      document.getElementById("l-fmt").value = "";
-      document.getElementById("l-source").value = "";
+      markMaterialDirty() {
+        state.dirtyMaterial = true;
+      },
 
-      await loadLinks();
-      toast("Сохранено ✓");
-    }
+      updateSectionContent(sectionId, value) {
+        const section = this.findSection(sectionId);
+        if (!section) return;
+        section.content = value;
+        state.dirtySections.add(sectionId);
+      },
 
-    async function setStatus(id, val) {
-      const { error } = await db
-        .from("links")
-        .update({ status: val })
-        .eq("id", id);
+      updateSectionData(sectionId, key, value) {
+        const section = this.findSection(sectionId);
+        if (!section) return;
+        if (!section.data) section.data = {};
+        section.data[key] = value;
+        state.dirtySections.add(sectionId);
+      },
 
-      if (error) {
-        console.error("SET STATUS ERROR:", error);
-        toast("Не удалось обновить статус", "err");
-        return;
-      }
+      findSection(sectionId) {
+        for (const materialId of Object.keys(state.sectionsByMaterial)) {
+          const found = state.sectionsByMaterial[materialId].find(item => item.id === sectionId);
+          if (found) return found;
+        }
+        return null;
+      },
 
-      const link = links.find(x => x.id === id);
-      if (link) link.status = val;
+      async saveDetail() {
+        const material = state.materials.find(item => item.id === state.currentMaterialId);
+        if (!material) return;
+        const updates = {
+          title: v('detailTitle') || material.title,
+          source_url: v('detailUrl') || null,
+          material_type: g('detailType') || material.material_type,
+          status: g('detailStatus') || material.status,
+          priority: g('detailPriority') || material.priority,
+          output_format: g('detailOutput') || material.output_format,
+          source_id: g('detailSourceId') || null,
+          source_name: this.getSourceName(g('detailSourceId')) || this.domainFromUrl(v('detailUrl')) || null,
+          translation_required: document.getElementById('detailTranslation').checked,
+          short_task: v('detailTask') || null
+        };
+        try {
+          const typeChanged = material.material_type !== updates.material_type;
+          const { data, error } = await supabaseClient.from('materials').update(updates).eq('id', material.id).select().single();
+          if (error) throw error;
+          Object.assign(material, data);
 
-      renderLinks();
-      updateH();
-      renderStats();
-    }
-
-    async function delLink(id) {
-      if (!confirm("Удалить запись?")) return;
-
-      const { error } = await db
-        .from("links")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        console.error("DELETE LINK ERROR:", error);
-        toast("Не удалось удалить запись", "err");
-        return;
-      }
-
-      links = links.filter(x => x.id !== id);
-      renderLinks();
-      updateH();
-      renderStats();
-      toast("Удалено");
-    }
-
-    async function addSource() {
-      if (!currentUser) {
-        toast("Сначала войдите", "err");
-        return;
-      }
-
-      const name = v("s-name");
-      let url = v("s-url");
-
-      if (!name) {
-        toast("Введите название", "err");
-        return;
-      }
-
-      url = url ? normalizeUrl(url) : "";
-
-      const btn = document.getElementById("btn-add-src");
-      btn.disabled = true;
-      btn.textContent = "...";
-
-      const row = {
-        id: uid(),
-        name,
-        url: url || null,
-        cat: g("s-cat"),
-        type: g("s-type"),
-        description: v("s-desc") || null
-      };
-
-      const { error } = await db.from("sources").insert([row]);
-
-      btn.disabled = false;
-      btn.textContent = "+ Добавить";
-
-      if (error) {
-        console.error("ADD SOURCE ERROR:", error);
-        toast("Ошибка: " + error.message, "err");
-        return;
-      }
-
-      document.getElementById("s-name").value = "";
-      document.getElementById("s-url").value = "";
-      document.getElementById("s-desc").value = "";
-
-      await loadSources();
-      toast("Источник добавлен ✓");
-    }
-
-    async function delSource(id) {
-      if (!confirm("Удалить источник?")) return;
-
-      const { error } = await db
-        .from("sources")
-        .delete()
-        .eq("id", id);
-
-      if (error) {
-        console.error("DELETE SOURCE ERROR:", error);
-        toast("Не удалось удалить источник", "err");
-        return;
-      }
-
-      sources = sources.filter(x => x.id !== id);
-      links = links.map(l => l.source_id === id ? { ...l, source_id: null } : l);
-
-      renderSourceOptions();
-      renderSources();
-      renderLinks();
-      renderStats();
-      toast("Удалено");
-    }
-
-    function renderSourceOptions() {
-      const select = document.getElementById("l-source");
-      const current = select.value;
-
-      select.innerHTML =
-        "<option value=''>Источник...</option>" +
-        sources.map(s => "<option value='" + e(s.id) + "'>" + e(s.name) + "</option>").join("");
-
-      if (current && sources.some(s => s.id === current)) {
-        select.value = current;
-      }
-    }
-
-    function renderLinks() {
-      const q = (document.getElementById("search")?.value || "").toLowerCase();
-      const items = links.filter(l => {
-        const sourceName = (sources.find(s => s.id === l.source_id)?.name || "").toLowerCase();
-        const matchesSearch =
-          !q ||
-          [l.title, l.url, l.idea, sourceName]
-            .filter(Boolean)
-            .some(s => s.toLowerCase().includes(q));
-
-        if (!matchesSearch) return false;
-        if (lf === "all") return true;
-        if (lf.startsWith("st:")) return l.status === lf.slice(3);
-        if (lf.startsWith("prio:")) return l.prio === lf.slice(5);
-        return l.cat === lf;
-      });
-
-      const el = document.getElementById("items-list");
-
-      if (!items.length) {
-        el.innerHTML = "<div class='empty'>Пока ничего нет. Добавьте первую ссылку ☝️</div>";
-        return;
-      }
-
-      el.innerHTML = items.map(l => {
-        const pd = l.prio === "high" ? "prio-high" : l.prio === "med" ? "prio-med" : "prio-low";
-        const dt = l.created_at
-          ? new Date(l.created_at).toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit" })
-          : "";
-        const sourceName = sources.find(s => s.id === l.source_id)?.name || "";
-        const href = l.url ? safeUrl(l.url) : "#";
-
-        return (
-          "<div class='item'>" +
-            "<div class='prio-dot " + pd + "'></div>" +
-            "<div class='item-body'>" +
-              "<div class='item-top'>" +
-                "<span class='cat-badge cat-" + e(l.cat || "") + "'>" + e(CAT[l.cat] || l.cat || "") + "</span>" +
-                (l.fmt ? "<span class='fmt-badge'>" + e(FMT[l.fmt] || l.fmt) + "</span>" : "") +
-                (sourceName ? "<span class='src-inline'>Источник: " + e(sourceName) + "</span>" : "") +
-                "<span class='item-date'>" + e(dt) + "</span>" +
-              "</div>" +
-              (l.title ? "<div class='item-title'>" + e(l.title) + "</div>" : "") +
-              (l.url
-                ? "<div class='item-url'><a href='" + e(href) + "' target='_blank' rel='noopener noreferrer'>" + e(l.url.length > 88 ? l.url.slice(0, 88) + "…" : l.url) + "</a></div>"
-                : "") +
-              (l.idea ? "<div class='item-idea'>💡 " + e(l.idea) + "</div>" : "") +
-            "</div>" +
-            "<div class='item-actions'>" +
-              "<select class='status-sel' onchange='setStatus(\"" + e(l.id) + "\",this.value)'>" +
-                "<option value='new' " + (l.status === "new" ? "selected" : "") + ">🆕 Новое</option>" +
-                "<option value='wip' " + (l.status === "wip" ? "selected" : "") + ">⚙️ В работе</option>" +
-                "<option value='done' " + (l.status === "done" ? "selected" : "") + ">✅ Готово</option>" +
-                "<option value='skip' " + (l.status === "skip" ? "selected" : "") + ">⏸ Отложено</option>" +
-              "</select>" +
-              "<button class='btn-del' onclick='delLink(\"" + e(l.id) + "\")'>✕ удалить</button>" +
-            "</div>" +
-          "</div>"
-        );
-      }).join("");
-    }
-
-    function renderSources() {
-      const srcs = sources.filter(s => {
-        if (sf === "all") return true;
-        return s.cat === sf || s.type === sf;
-      });
-
-      const el = document.getElementById("src-grid");
-
-      if (!srcs.length) {
-        el.innerHTML = "<div class='empty'>Нет источников по этому фильтру.</div>";
-        return;
-      }
-
-      el.innerHTML = srcs.map(s => {
-        const ico = ICONS[s.type] || "🔗";
-        const catLbl = { ai: "AI", marketing: "Маркетинг", both: "Оба", news: "Новости" }[s.cat] || s.cat;
-        const dom = s.url
-          ? (() => {
-              try {
-                return new URL(s.url).hostname.replace("www.","");
-              } catch {
-                return s.url;
+          if (typeChanged) {
+            const ok = confirm('Тип материала изменён. Пересобрать секции по новому шаблону? Текущие секции будут заменены.');
+            if (ok) {
+              await supabaseClient.from('material_sections').delete().eq('material_id', material.id);
+              const rows = this.buildSectionRows(material.id, updates.material_type);
+              const { data: newSections, error: secErr } = await supabaseClient.from('material_sections').insert(rows).select().order('position', { ascending: true });
+              if (secErr) throw secErr;
+              state.sectionsByMaterial[material.id] = (newSections || []).map(section => this.prepareSection(section));
+              state.dirtySections.clear();
+            }
+          } else {
+            const dirty = Array.from(state.dirtySections);
+            if (dirty.length) {
+              for (const sectionId of dirty) {
+                const section = this.findSection(sectionId);
+                if (!section) continue;
+                const { error: secErr } = await supabaseClient.from('material_sections').update({
+                  title: section.title,
+                  helper: section.helper,
+                  content: section.content || '',
+                  data: section.data || {},
+                  checklist: section.checklist || []
+                }).eq('id', section.id);
+                if (secErr) throw secErr;
               }
-            })()
-          : "";
+            }
+          }
+          state.dirtyMaterial = false;
+          state.dirtySections.clear();
+          this.updateTopbarSummary();
+          this.render();
+          this.toast('Карточка сохранена');
+        } catch (error) {
+          console.error(error);
+          this.toast('Ошибка сохранения: ' + error.message, 'err');
+        }
+      },
 
-        return (
-          "<div class='src-card'>" +
-            "<div class='src-head'>" +
-              "<div class='src-icon'>" + ico + "</div>" +
-              "<div>" +
-                "<div class='src-name'>" + e(s.name) + "</div>" +
-                (dom ? "<div class='src-url'><a href='" + e(safeUrl(s.url)) + "' target='_blank' rel='noopener noreferrer'>" + e(dom) + "</a></div>" : "") +
-              "</div>" +
-            "</div>" +
-            "<div class='src-desc'>" + e(s.description || "") + "</div>" +
-            "<div class='src-foot'>" +
-              "<span class='cat-badge cat-" + e(s.cat || "") + "' style='font-size:10px'>" + e(catLbl) + "</span>" +
-              "<button class='btn-src-del' onclick='delSource(\"" + e(s.id) + "\")'>✕</button>" +
-            "</div>" +
-          "</div>"
-        );
-      }).join("");
-    }
+      async markDetailComplete() {
+        const material = state.materials.find(item => item.id === state.currentMaterialId);
+        if (!material) return;
+        await this.saveDetail();
+        await this.quickMoveStatus(material.id, 'ready', false);
+        this.toast('Карточка переведена в статус “Готово”');
+      },
 
-    function renderStats() {
-      const el = document.getElementById("stats-content");
+      async duplicateMaterial(id) {
+        const material = state.materials.find(item => item.id === id);
+        if (!material) return;
+        const duplicated = await this.createMaterial({
+          title: material.title + ' (копия)',
+          source_url: material.source_url,
+          material_type: material.material_type,
+          priority: material.priority,
+          output_format: material.output_format,
+          short_task: material.short_task,
+          translation_required: material.translation_required,
+          source_id: material.source_id,
+          status: 'inbox'
+        });
+        const sourceSections = (state.sectionsByMaterial[id] || []).map(section => ({
+          ...section,
+          material_id: duplicated.id,
+          id: undefined,
+          user_id: state.user.id
+        }));
+        await supabaseClient.from('material_sections').delete().eq('material_id', duplicated.id);
+        const rows = sourceSections.map((section, index) => ({
+          user_id: state.user.id,
+          material_id: duplicated.id,
+          section_key: section.section_key,
+          title: section.title,
+          helper: section.helper,
+          position: index,
+          content: section.content || '',
+          data: section.data || {},
+          checklist: section.checklist || []
+        }));
+        const { data: sectionCopy, error } = await supabaseClient.from('material_sections').insert(rows).select().order('position', { ascending: true });
+        if (!error) {
+          state.sectionsByMaterial[duplicated.id] = (sectionCopy || []).map(section => this.prepareSection(section));
+        }
+        this.toast('Материал дублирован');
+        this.openMaterial(duplicated.id);
+      },
 
-      if (!currentUser) {
-        el.innerHTML = "<div class='empty'>Войдите, чтобы увидеть статистику.</div>";
-        return;
+      async deleteMaterial(id) {
+        if (!confirm('Удалить материал и все его секции?')) return;
+        const { error } = await supabaseClient.from('materials').delete().eq('id', id);
+        if (error) {
+          this.toast('Не удалось удалить материал', 'err');
+          return;
+        }
+        delete state.sectionsByMaterial[id];
+        state.materials = state.materials.filter(item => item.id !== id);
+        state.currentMaterialId = null;
+        state.currentView = state.previousView || 'library';
+        this.updateTopbarSummary();
+        this.render();
+      },
+
+      onTypeChange(value) {
+        state.dirtyMaterial = true;
+        const out = document.getElementById('detailOutput');
+        if (out && SYSTEM_TEMPLATES[value]?.recommended?.[0]) out.value = SYSTEM_TEMPLATES[value].recommended[0];
+      },
+
+      async quickMoveStatus(id, status, rerender = true) {
+        const material = state.materials.find(item => item.id === id);
+        if (!material) return;
+        const { error } = await supabaseClient.from('materials').update({ status }).eq('id', id);
+        if (error) {
+          this.toast('Не удалось обновить статус', 'err');
+          return;
+        }
+        material.status = status;
+        if (rerender) this.render();
+        this.updateTopbarSummary();
+      },
+
+      async quickAdvance(id) {
+        const material = state.materials.find(item => item.id === id);
+        if (!material) return;
+        const idx = STATUSES.findIndex(s => s.id === material.status);
+        if (idx < 0 || idx >= STATUSES.length - 2) {
+          this.toast('Дальше переводить уже некуда');
+          return;
+        }
+        await this.quickMoveStatus(id, STATUSES[idx + 1].id);
+      },
+
+      onDragStart(event, id) {
+        state.draggedId = id;
+        event.dataTransfer.effectAllowed = 'move';
+      },
+      onDragOver(event) {
+        event.preventDefault();
+      },
+      async onDrop(event, status) {
+        event.preventDefault();
+        if (!state.draggedId) return;
+        await this.quickMoveStatus(state.draggedId, status);
+        state.draggedId = null;
+      },
+
+      toggleChecklist(sectionId, index) {
+        const section = this.findSection(sectionId);
+        if (!section) return;
+        if (!section.checklist[index]) return;
+        section.checklist[index].done = !section.checklist[index].done;
+        state.dirtySections.add(sectionId);
+        this.render();
+      },
+
+      addChecklistItem(sectionId) {
+        const input = document.getElementById(`check-input-${sectionId}`);
+        const value = (input?.value || '').trim();
+        if (!value) return;
+        const section = this.findSection(sectionId);
+        if (!section) return;
+        section.checklist.push({ text: value, done: false });
+        state.dirtySections.add(sectionId);
+        this.render();
+      },
+
+      removeChecklistItem(sectionId, index) {
+        const section = this.findSection(sectionId);
+        if (!section) return;
+        section.checklist.splice(index, 1);
+        state.dirtySections.add(sectionId);
+        this.render();
+      },
+
+      async copySection(sectionId) {
+        const section = this.findSection(sectionId);
+        if (!section) return;
+        const payload = {
+          title: section.title,
+          content: section.content || '',
+          data: section.data || {},
+          checklist: section.checklist || []
+        };
+        await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+        this.toast('Секция скопирована в JSON');
+      },
+
+      toggleSetting(key) {
+        state.settings[key] = !state.settings[key];
+        saveUiSettings();
+        this.render();
+      },
+
+      async exportBackup() {
+        const backup = {
+          exported_at: new Date().toISOString(),
+          user: state.user?.email,
+          materials: state.materials,
+          sections: state.sectionsByMaterial,
+          sources: state.sources,
+          prompts: state.prompts
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'content-system-backup.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+
+      getTypeLabel(id) { return MATERIAL_TYPES.find(t => t.id === id)?.label || id; },
+      getStatusLabel(id) { return STATUSES.find(s => s.id === id)?.label || id; },
+      getPriorityLabel(id) { return PRIORITIES.find(p => p.id === id)?.label || id; },
+      getOutputLabel(id) { return OUTPUT_FORMATS.find(o => o.id === id)?.label || id; },
+      getSourceTypeLabel(id) { return SOURCE_TYPES.find(t => t.id === id)?.label || id; },
+      getPromptCategoryLabel(id) { return PROMPT_CATEGORIES.find(t => t.id === id)?.label || id; },
+      formatDate(date) {
+        if (!date) return '—';
+        return new Date(date).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+      },
+      trimText(text, len) {
+        const s = String(text || '');
+        return s.length > len ? s.slice(0, len) + '…' : s;
+      },
+      domainFromUrl(url) {
+        if (!url) return '';
+        try { return new URL(url).hostname.replace(/^www\./,''); } catch { return ''; }
+      },
+      toast(msg, type = '') {
+        const el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = `toast show ${type}`;
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => el.className = 'toast', 2600);
       }
+    };
 
-      const bc = {};
-      const bs = { new: 0, wip: 0, done: 0, skip: 0 };
-      const bf = {};
+    function v(id) { return (document.getElementById(id)?.value || '').trim(); }
+    function g(id) { return document.getElementById(id)?.value || ''; }
+    function e(value) { return String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+    function eAttr(value) { return e(value).replace(/'/g, '&#39;'); }
 
-      links.forEach(l => {
-        bc[l.cat] = (bc[l.cat] || 0) + 1;
-        bs[l.status] = (bs[l.status] || 0) + 1;
-        if (l.fmt) bf[l.fmt] = (bf[l.fmt] || 0) + 1;
-      });
-
-      const tot = links.length || 1;
-      const tf = Object.entries(bf).sort((a, b) => b[1] - a[1]).slice(0, 5);
-
-      el.innerHTML =
-        "<div class='stats-grid'>" +
-          "<div class='stat-card'><div class='stat-n'>" + links.length + "</div><div class='stat-l'>Всего ссылок</div></div>" +
-          "<div class='stat-card'><div class='stat-n' style='color:var(--accent)'>" + (bs.new || 0) + "</div><div class='stat-l'>Новых</div></div>" +
-          "<div class='stat-card'><div class='stat-n' style='color:#ef9f27'>" + (bs.wip || 0) + "</div><div class='stat-l'>В работе</div></div>" +
-          "<div class='stat-card'><div class='stat-n' style='color:var(--mkt)'>" + (bs.done || 0) + "</div><div class='stat-l'>Готово</div></div>" +
-          "<div class='stat-card'><div class='stat-n'>" + sources.length + "</div><div class='stat-l'>Источников</div></div>" +
-        "</div>" +
-        "<div style='display:grid;grid-template-columns:1fr 1fr;gap:16px'>" +
-          "<div style='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px'>" +
-            "<div style='font-size:13px;font-weight:600;margin-bottom:12px'>По тематике</div>" +
-            "<div class='chart-row'>" +
-              Object.entries(CAT)
-                .filter(([k]) => bc[k])
-                .map(([k, lbl]) =>
-                  "<div class='chart-item'>" +
-                    "<div class='chart-label'><span class='cat-badge cat-" + e(k) + "' style='font-size:10px'>" + e(lbl) + "</span></div>" +
-                    "<div class='chart-bar-wrap'><div class='chart-bar' style='width:" + Math.round((bc[k] || 0) / tot * 100) + "%'></div></div>" +
-                    "<div class='chart-count'>" + (bc[k] || 0) + "</div>" +
-                  "</div>"
-                ).join("") +
-            "</div>" +
-          "</div>" +
-          "<div style='background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px'>" +
-            "<div style='font-size:13px;font-weight:600;margin-bottom:12px'>Топ форматов</div>" +
-            "<div class='chart-row'>" +
-              (tf.length
-                ? tf.map(([k, val]) =>
-                    "<div class='chart-item'>" +
-                      "<div class='chart-label'><span class='fmt-badge'>" + e(FMT[k] || k) + "</span></div>" +
-                      "<div class='chart-bar-wrap'><div class='chart-bar' style='width:" + Math.round(val / tot * 100) + "%;background:#ef9f27'></div></div>" +
-                      "<div class='chart-count'>" + val + "</div>" +
-                    "</div>"
-                  ).join("")
-                : "<div style='font-size:12px;color:var(--muted)'>Добавьте ссылки с форматом</div>") +
-            "</div>" +
-          "</div>" +
-        "</div>";
-    }
-
-    function switchTab(n) {
-      ["links", "sources", "stats"].forEach((t, i) => {
-        document.querySelectorAll(".tab")[i].classList.toggle("active", t === n);
-        document.getElementById("tab-" + t).classList.toggle("active", t === n);
-      });
-
-      if (n === "stats") renderStats();
-    }
-
-    function setF(f, btn) {
-      lf = f;
-      document.querySelectorAll("#tab-links .fil-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderLinks();
-    }
-
-    function setSF(f, btn) {
-      sf = f;
-      document.querySelectorAll("#src-filters .fil-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      renderSources();
-    }
-
-    function updateH() {
-      document.getElementById("h-total").textContent = links.length;
-      document.getElementById("h-wip").textContent = links.filter(l => l.status === "wip").length;
-      document.getElementById("h-done").textContent = links.filter(l => l.status === "done").length;
-    }
-
-    function sync(s, l) {
-      const d = document.getElementById("sdot");
-      d.className = "sdot" + (s === "ok" ? "" : " " + s);
-      document.getElementById("slabel").textContent = l;
-    }
-
-    function toast(msg, type) {
-      const t = document.getElementById("toast");
-      t.textContent = msg;
-      t.style.background = type === "err" ? "#a32d2d" : "#0d0d0d";
-      t.classList.add("show");
-      setTimeout(() => t.classList.remove("show"), 2500);
-    }
-
-    function v(id) {
-      return document.getElementById(id)?.value?.trim() || "";
-    }
-
-    function g(id) {
-      return document.getElementById(id)?.value || "";
-    }
-
-    function e(s) {
-      return String(s || "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-    }
-
-    function uid() {
-      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    }
-
-    function normalizeUrl(raw) {
-      try {
-        const u = new URL(raw.trim());
-        u.hash = "";
-        return u.href.replace(/\/$/, "");
-      } catch {
-        return raw.trim();
+    window.App = App;
+    document.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' && !ev.shiftKey) {
+        const active = document.activeElement;
+        if (active && active.id === 'loginPassword') App.login();
       }
-    }
-
-    function safeUrl(raw) {
-      try {
-        const u = new URL(raw);
-        if (u.protocol === "http:" || u.protocol === "https:") return u.href;
-        return "#";
-      } catch {
-        return "#";
-      }
-    }
-
-    document.addEventListener("keydown", ev => {
-      if (ev.key !== "Enter") return;
-
-      const loginVisible = !document.getElementById("login-overlay").classList.contains("hidden");
-      if (loginVisible) {
-        login();
-        return;
-      }
-
-      const tab = document.querySelector(".section.active");
-      if (!tab) return;
-
-      if (tab.id === "tab-links" && document.activeElement.closest(".add-form")) addLink();
-      if (tab.id === "tab-sources" && document.activeElement.closest(".add-form")) addSource();
     });
 
-    window.login = login;
-    window.logoutNow = logoutNow;
-    window.addLink = addLink;
-    window.addSource = addSource;
-    window.analyzeContent = analyzeContent;
-    window.delLink = delLink;
-    window.delSource = delSource;
-    window.setStatus = setStatus;
-    window.switchTab = switchTab;
-    window.setF = setF;
-    window.setSF = setSF;
-
-    boot();
+    App.init();
   </script>
 </body>
 </html>
