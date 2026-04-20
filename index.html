@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -181,7 +180,7 @@
     .textarea.big{min-height:160px}
     .checklist{display:flex;flex-direction:column;gap:10px;margin-top:4px}
     .check-item{display:flex;align-items:center;gap:10px;color:#344054;padding:10px 12px;border:1px solid #edf2f7;border-radius:14px;background:#fbfdff}
-    .check-item input{accent-color:var(--accent);width:16px;height:16px}
+    .check-item input{accent-color:var(--accent);width:16px;height:16px;flex-shrink:0}
     .check-item.done span{text-decoration:line-through;color:var(--muted)}
     .check-add{display:flex;gap:10px;margin-top:12px}
     .section-tools{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
@@ -201,6 +200,7 @@
     .inline-actions{display:flex;gap:10px;flex-wrap:wrap}
     .card-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
     .w-100{width:100%}
+    .mobile-menu-btn{display:none!important}
 
     @media (max-width: 1180px){
       .split,.settings-layout,.detail-shell{grid-template-columns:1fr}
@@ -208,6 +208,7 @@
       .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%);transition:.2s;z-index:70}
       body.sidebar-open .sidebar{transform:translateX(0)}
       .main{padding-left:0}
+      .mobile-menu-btn{display:flex!important}
     }
     @media (max-width: 900px){
       .main-inner{padding:20px}
@@ -279,6 +280,7 @@
     <main class="main">
       <header class="topbar">
         <div class="topbar-left">
+          <button class="icon-btn mobile-menu-btn" onclick="App.toggleSidebar()" aria-label="Меню">☰</button>
           <div class="search-wrap">
             <span class="icon">⌕</span>
             <input id="globalSearch" class="input" type="search" placeholder="Поиск по библиотеке..." oninput="App.setSearch(this.value)" />
@@ -721,6 +723,7 @@
 
     const App = {
       async init() {
+        state.compactList = state.settings.compactCards || false;
         this.bindAuthListener();
         const { data, error } = await supabaseClient.auth.getSession();
         if (error) {
@@ -873,16 +876,24 @@
       },
 
       switchView(view) {
-        if (state.currentView === 'detail' && state.dirtyMaterial) {
-          // no-op, explicit save is preferred
+        if (state.currentView === 'detail' && (state.dirtyMaterial || state.dirtySections.size > 0)) {
+          if (!confirm('Есть несохранённые изменения. Выйти без сохранения?')) return;
+          state.dirtyMaterial = false;
+          state.dirtySections.clear();
         }
         state.previousView = state.currentView === 'detail' ? (state.previousView || 'library') : state.currentView;
         state.currentView = view;
         if (view !== 'detail') state.currentMaterialId = null;
+        document.body.classList.remove('sidebar-open');
         this.render();
       },
 
       goBackFromDetail() {
+        if (state.dirtyMaterial || state.dirtySections.size > 0) {
+          if (!confirm('Есть несохранённые изменения. Выйти без сохранения?')) return;
+          state.dirtyMaterial = false;
+          state.dirtySections.clear();
+        }
         state.currentView = state.previousView || 'library';
         state.currentMaterialId = null;
         this.render();
@@ -899,6 +910,10 @@
           const target = document.getElementById('qaUrl');
           if (target) target.focus();
         }, 30);
+      },
+
+      toggleSidebar() {
+        document.body.classList.toggle('sidebar-open');
       },
 
       render() {
@@ -943,7 +958,7 @@
         }
       },
 
-      getFilteredMaterials(forBoard = false) {
+      getFilteredMaterials() {
         const q = state.search.trim().toLowerCase();
         return state.materials.filter(item => {
           const sourceName = item.source_name || this.getSourceName(item.source_id) || '';
@@ -1066,6 +1081,8 @@
 
       setCompact(flag) {
         state.compactList = flag;
+        state.settings.compactCards = flag;
+        saveUiSettings();
         this.render();
       },
 
@@ -1105,7 +1122,7 @@
       },
 
       renderBoardView() {
-        const materials = this.getFilteredMaterials(true);
+        const materials = this.getFilteredMaterials();
         return `
           <div class="page-head">
             <div>
@@ -1136,7 +1153,7 @@
       renderBoardCard(item) {
         const progress = this.getMaterialProgress(item.id);
         return `
-          <article class="board-card" draggable="true" ondragstart="App.onDragStart(event,'${item.id}')">
+          <article class="board-card" draggable="true" ondragstart="App.onDragStart(event,'${item.id}')" ondragend="App.onDragEnd(event)">
             <div class="meta-line">
               <span class="badge type">${this.getTypeLabel(item.material_type)}</span>
               ${item.translation_required ? `<span class="badge translation">Нужен перевод</span>` : ''}
@@ -1524,14 +1541,14 @@
             ` : ''}
             <div class="hr"></div>
             <div class="small-label" style="margin-bottom:12px">Чеклист</div>
-            <div class="checklist">
+            <div class="checklist" id="checklist-${section.id}">
               ${section.checklist.length ? section.checklist.map((item, index) => `
-                <label class="check-item ${item.done ? 'done' : ''}">
+                <label class="check-item ${item.done ? 'done' : ''}" id="check-item-${section.id}-${index}">
                   <input type="checkbox" ${item.done ? 'checked' : ''} onchange="App.toggleChecklist('${section.id}', ${index})">
                   <span>${e(item.text)}</span>
                   <button class="icon-btn" type="button" onclick="App.removeChecklistItem('${section.id}', ${index})">×</button>
                 </label>
-              `).join('') : `<div class="surface-note">Пока нет чеклиста. Добавьте первый пункт ниже.</div>`}
+              `).join('') : `<div class="surface-note" id="checklist-empty-${section.id}">Пока нет чеклиста. Добавьте первый пункт ниже.</div>`}
             </div>
             <div class="check-add">
               <input id="check-input-${section.id}" class="input" placeholder="Добавить пункт чеклиста" />
@@ -1814,10 +1831,21 @@
       async saveDetail() {
         const material = state.materials.find(item => item.id === state.currentMaterialId);
         if (!material) return;
+        const newType = g('detailType') || material.material_type;
+        const typeChanged = material.material_type !== newType;
+
+        if (typeChanged) {
+          const ok = confirm('Тип материала изменён. Пересобрать секции по новому шаблону? Текущие секции будут заменены.');
+          if (!ok) {
+            document.getElementById('detailType').value = material.material_type;
+            return;
+          }
+        }
+
         const updates = {
           title: v('detailTitle') || material.title,
           source_url: v('detailUrl') || null,
-          material_type: g('detailType') || material.material_type,
+          material_type: newType,
           status: g('detailStatus') || material.status,
           priority: g('detailPriority') || material.priority,
           output_format: g('detailOutput') || material.output_format,
@@ -1827,21 +1855,17 @@
           short_task: v('detailTask') || null
         };
         try {
-          const typeChanged = material.material_type !== updates.material_type;
           const { data, error } = await supabaseClient.from('materials').update(updates).eq('id', material.id).select().single();
           if (error) throw error;
           Object.assign(material, data);
 
           if (typeChanged) {
-            const ok = confirm('Тип материала изменён. Пересобрать секции по новому шаблону? Текущие секции будут заменены.');
-            if (ok) {
-              await supabaseClient.from('material_sections').delete().eq('material_id', material.id);
-              const rows = this.buildSectionRows(material.id, updates.material_type);
-              const { data: newSections, error: secErr } = await supabaseClient.from('material_sections').insert(rows).select().order('position', { ascending: true });
-              if (secErr) throw secErr;
-              state.sectionsByMaterial[material.id] = (newSections || []).map(section => this.prepareSection(section));
-              state.dirtySections.clear();
-            }
+            await supabaseClient.from('material_sections').delete().eq('material_id', material.id);
+            const rows = this.buildSectionRows(material.id, updates.material_type);
+            const { data: newSections, error: secErr } = await supabaseClient.from('material_sections').insert(rows).select().order('position', { ascending: true });
+            if (secErr) throw secErr;
+            state.sectionsByMaterial[material.id] = (newSections || []).map(section => this.prepareSection(section));
+            state.dirtySections.clear();
           } else {
             const dirty = Array.from(state.dirtySections);
             if (dirty.length) {
@@ -1875,7 +1899,7 @@
         if (!material) return;
         await this.saveDetail();
         await this.quickMoveStatus(material.id, 'ready', false);
-        this.toast('Карточка переведена в статус “Готово”');
+        this.toast('Карточка переведена в статус "Готово"');
       },
 
       async duplicateMaterial(id) {
@@ -1948,6 +1972,7 @@
           return;
         }
         material.status = status;
+        material.updated_at = new Date().toISOString();
         if (rerender) this.render();
         this.updateTopbarSummary();
       },
@@ -1966,6 +1991,10 @@
       onDragStart(event, id) {
         state.draggedId = id;
         event.dataTransfer.effectAllowed = 'move';
+        event.target.classList.add('dragging');
+      },
+      onDragEnd(event) {
+        event.target.classList.remove('dragging');
       },
       onDragOver(event) {
         event.preventDefault();
@@ -1979,11 +2008,16 @@
 
       toggleChecklist(sectionId, index) {
         const section = this.findSection(sectionId);
-        if (!section) return;
-        if (!section.checklist[index]) return;
+        if (!section || !section.checklist[index]) return;
         section.checklist[index].done = !section.checklist[index].done;
         state.dirtySections.add(sectionId);
-        this.render();
+
+        // Обновляем DOM точечно, без полной перерисовки
+        const itemEl = document.getElementById(`check-item-${sectionId}-${index}`);
+        if (itemEl) {
+          itemEl.classList.toggle('done', section.checklist[index].done);
+        }
+        this.updateProgressUI(sectionId);
       },
 
       addChecklistItem(sectionId) {
@@ -1994,7 +2028,22 @@
         if (!section) return;
         section.checklist.push({ text: value, done: false });
         state.dirtySections.add(sectionId);
-        this.render();
+
+        const listEl = document.getElementById(`checklist-${sectionId}`);
+        const emptyEl = document.getElementById(`checklist-empty-${sectionId}`);
+        if (emptyEl) emptyEl.remove();
+
+        const index = section.checklist.length - 1;
+        const itemHtml = `
+          <label class="check-item" id="check-item-${sectionId}-${index}">
+            <input type="checkbox" onchange="App.toggleChecklist('${sectionId}', ${index})">
+            <span>${e(value)}</span>
+            <button class="icon-btn" type="button" onclick="App.removeChecklistItem('${sectionId}', ${index})">×</button>
+          </label>
+        `;
+        listEl.insertAdjacentHTML('beforeend', itemHtml);
+        input.value = '';
+        this.updateProgressUI(sectionId);
       },
 
       removeChecklistItem(sectionId, index) {
@@ -2002,7 +2051,39 @@
         if (!section) return;
         section.checklist.splice(index, 1);
         state.dirtySections.add(sectionId);
-        this.render();
+
+        // Пересобираем чеклист в DOM, так как индексы сдвинулись
+        const listEl = document.getElementById(`checklist-${sectionId}`);
+        if (listEl) {
+          if (!section.checklist.length) {
+            listEl.innerHTML = `<div class="surface-note" id="checklist-empty-${sectionId}">Пока нет чеклиста. Добавьте первый пункт ниже.</div>`;
+          } else {
+            listEl.innerHTML = section.checklist.map((item, idx) => `
+              <label class="check-item ${item.done ? 'done' : ''}" id="check-item-${sectionId}-${idx}">
+                <input type="checkbox" ${item.done ? 'checked' : ''} onchange="App.toggleChecklist('${sectionId}', ${idx})">
+                <span>${e(item.text)}</span>
+                <button class="icon-btn" type="button" onclick="App.removeChecklistItem('${sectionId}', ${idx})">×</button>
+              </label>
+            `).join('');
+          }
+        }
+        this.updateProgressUI(sectionId);
+      },
+
+      updateProgressUI(sectionId) {
+        const material = state.materials.find(item => item.id === state.currentMaterialId);
+        if (!material) return;
+        const progress = this.getMaterialProgress(material.id);
+
+        // Обновляем боковую панель прогресса
+        const side = document.querySelector('.detail-side');
+        if (side) {
+          const bars = side.querySelectorAll('.progress-bar > span');
+          if (bars[0]) bars[0].style.width = progress.percent + '%';
+          const strongs = side.querySelectorAll('.pill-line strong');
+          if (strongs[0]) strongs[0].textContent = progress.percent + '%';
+          if (strongs[1]) strongs[1].textContent = `${progress.done} / ${progress.total || 0}`;
+        }
       },
 
       async copySection(sectionId) {
@@ -2078,7 +2159,7 @@
     document.addEventListener('keydown', ev => {
       if (ev.key === 'Enter' && !ev.shiftKey) {
         const active = document.activeElement;
-        if (active && active.id === 'loginPassword') App.login();
+        if (active && (active.id === 'loginPassword' || active.id === 'loginEmail')) App.login();
       }
     });
 
